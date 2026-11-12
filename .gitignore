@@ -1,0 +1,33 @@
+# Gradle
+.gradle/
+build/
+out/
+!gradle/wrapper/gradle-wrapper.jar
+
+# Fabric Loom / game run directory
+run/
+logs/
+*.log
+
+# IDE
+.idea/
+*.iml
+*.ipr
+*.iws
+.vscode/
+.classpath
+.project
+.settings/
+bin/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Secrets stay on disk only
+.env
+.env.*
+
+# Python (tools/)
+__pycache__/
+*.pyc

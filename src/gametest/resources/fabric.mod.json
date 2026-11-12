@@ -1,0 +1,24 @@
+{
+	"schemaVersion": 1,
+	"id": "wisteria-probe",
+	"version": "0.0.0",
+	"name": "Wisteria stage 0 probe",
+	"description": "Live checks for stage 0: hooks, 2D/3D drawing, a custom shader and audio. Dev-only, never shipped.",
+	"license": "GPL-3.0-only",
+	"environment": "client",
+	"entrypoints": {
+		"client": [
+			"dev.wisteria.probe.Probe"
+		],
+		"fabric-client-gametest": [
+			"dev.wisteria.probe.ProbeGameTest"
+		]
+	},
+	"mixins": [
+		"wisteria-probe.mixins.json"
+	],
+	"depends": {
+		"wisteria": "*",
+		"fabric-api": "*"
+	}
+}

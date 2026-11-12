@@ -1,0 +1,14 @@
+{
+	"required": true,
+	"package": "dev.wisteria.probe.mixin",
+	"compatibilityLevel": "JAVA_25",
+	"client": [
+		"ConnectionMixin",
+		"HudMixin",
+		"KeyboardHandlerMixin",
+		"MinecraftMixin"
+	],
+	"injectors": {
+		"defaultRequire": 1
+	}
+}

@@ -14,6 +14,24 @@ loom {
 	}
 }
 
+// Stage 0 probe + client game tests: src/gametest, its own mod ("wisteria-probe"), never part of the release jar.
+fabricApi {
+	configureTests {
+		createSourceSet = true
+		modId = "wisteria-probe"
+		enableGameTests = false
+		enableClientGameTests = true
+		eula = true
+	}
+}
+
+// ./gradlew runClientGameTest -Pbackend=VULKAN (or OPENGL) forces the graphics backend for a run.
+loom.runs.configureEach {
+	if (project.hasProperty('backend')) {
+		programArgs '--graphicsBackend', project.property('backend').toString()
+	}
+}
+
 dependencies {
 	minecraft "com.mojang:minecraft:${project.minecraft_version}"
 	implementation "net.fabricmc:fabric-loader:${project.loader_version}"

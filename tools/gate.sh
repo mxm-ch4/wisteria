@@ -9,7 +9,8 @@ backend="${2:-}"
 run="v${version}${backend:+-$backend}"
 out="$PWD/build/gate"
 mkdir -p "$out"
-rm -rf "compat/v${version}/build/run/clientGameTest/gate"
+# Start the first launch from an empty game directory: no old worlds, options, frames or client config.
+rm -rf "compat/v${version}/build/run/clientGameTest"
 printf '[general]\ndrivers=wave\nfrequency=44100\n[wave]\nfile=%s/%s.wav\n' "$out" "$run" > "$out/$run.alsoft.conf"
 export ALSOFT_DRIVERS=wave ALSOFT_CONF="$out/$run.alsoft.conf"
 # 26.3 creates its window through SDL, which finds no GLX visual under Xvfb; EGL works. Older versions ignore this.
@@ -17,11 +18,20 @@ export SDL_VIDEO_FORCE_EGL=1
 args=(":v${version}:runClientGameTest" --console=plain)
 [ -n "$backend" ] && args+=("-Pbackend=$backend")
 status=0
+: > "$out/$run.restart.log"
 xvfb-run -a -s "-screen 0 1280x720x24" ./gradlew "${args[@]}" > "$out/$run.log" 2>&1 || status=$?
+# Second launch over the same game directory: did the settings from the first one survive a real restart?
+if [ $status -eq 0 ]; then
+	WISTERIA_GATE_PHASE=restart xvfb-run -a -s "-screen 0 1280x720x24" ./gradlew "${args[@]}" > "$out/$run.restart.log" 2>&1 || status=$?
+	if [ $status -eq 0 ] && ! grep -q "gate restart check passed" "$out/$run.restart.log"; then
+		echo "gate.sh: the restart phase did not run" >&2
+		status=4
+	fi
+fi
 mkdir -p "$out/$run"
 rm -f "$out/$run"/*.png
 cp compat/v"${version}"/build/run/clientGameTest/gate/*.png "$out/$run/" 2>/dev/null || true
-grep -E "WisteriaGate|Using graphics backend|Gate failed|BUILD" "$out/$run.log" | sed -E 's/^\[[0-9:]+\] \[[^]]+\] //' || true
+cat "$out/$run.log" "$out/$run.restart.log" 2>/dev/null | grep -E "WisteriaGate|Using graphics backend|Gate failed|BUILD" | sed -E 's/^\[[0-9:]+\] \[[^]]+\] //' || true
 # The game silently falls back to the other backend if the requested one cannot start: that is not a pass.
 if [ $status -eq 0 ] && [ -n "$backend" ]; then
 	wanted=$([ "$backend" = VULKAN ] && echo Vulkan || echo OpenGL)

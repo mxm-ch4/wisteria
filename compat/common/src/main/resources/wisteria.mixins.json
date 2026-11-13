@@ -3,8 +3,10 @@
 	"package": "dev.wisteria.compat.common.mixin",
 	"compatibilityLevel": "JAVA_25",
 	"client": [
+		"CommandSuggestionsMixin",
 		"ConnectionMixin",
-		"KeyboardHandlerMixin"
+		"KeyboardHandlerMixin",
+		"LightmapMixin"
 	],
 	"injectors": {
 		"defaultRequire": 1

@@ -1,19 +1,25 @@
 package dev.wisteria.compat.common;
 
 import dev.wisteria.compat.AudioBackend;
+import dev.wisteria.compat.ChatBackend;
 import dev.wisteria.compat.ClientListener;
 import dev.wisteria.compat.InputBackend;
 import dev.wisteria.compat.PacketAdapter;
 import dev.wisteria.compat.Platform;
 import dev.wisteria.compat.ScreenBackend;
+import dev.wisteria.compat.VisualBackend;
+import dev.wisteria.compat.WorldBackend;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.Consumer;
+import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLifecycleEvents;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry;
 import net.fabricmc.fabric.api.client.rendering.v1.level.LevelExtractionContext;
 import net.fabricmc.loader.api.FabricLoader;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.components.ChatComponent;
 import net.minecraft.client.gui.navigation.ScreenRectangle;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.renderer.state.gui.GuiElementRenderState;
@@ -32,6 +38,9 @@ public abstract class CommonPlatform implements Platform {
 	private final CommonAudio audio = new CommonAudio();
 	private final CommonPackets packets = new CommonPackets();
 	private final CommonScreens screens = new CommonScreens(this);
+	private final CommonChat chat = new CommonChat(this);
+	private final CommonWorld world = new CommonWorld();
+	private final CommonVisuals visuals = new CommonVisuals();
 
 	/** The installed platform, or null before the mod initialises. Mixins go through this. */
 	public static @Nullable CommonPlatform instance() {
@@ -41,6 +50,13 @@ public abstract class CommonPlatform implements Platform {
 	/** Hooks the game events. Called once by the version entrypoint. */
 	public final void install() {
 		instance = this;
+		this.chat.install();
+
+		ClientLifecycleEvents.CLIENT_STOPPING.register(minecraft -> {
+			for (ClientListener listener : this.listeners) {
+				listener.onStop();
+			}
+		});
 
 		ClientTickEvents.END_CLIENT_TICK.register(minecraft -> {
 			for (ClientListener listener : this.listeners) {
@@ -84,6 +100,11 @@ public abstract class CommonPlatform implements Platform {
 	}
 
 	@Override
+	public void execute(Runnable task) {
+		Minecraft.getInstance().execute(task);
+	}
+
+	@Override
 	public void listen(ClientListener listener) {
 		this.listeners.add(listener);
 	}
@@ -106,6 +127,29 @@ public abstract class CommonPlatform implements Platform {
 	@Override
 	public ScreenBackend screens() {
 		return this.screens;
+	}
+
+	@Override
+	public ChatBackend chat() {
+		return this.chat;
+	}
+
+	@Override
+	public WorldBackend world() {
+		return this.world;
+	}
+
+	@Override
+	public VisualBackend visuals() {
+		return this.visuals;
+	}
+
+	public CommonChat commonChat() {
+		return this.chat;
+	}
+
+	public CommonVisuals commonVisuals() {
+		return this.visuals;
 	}
 
 	public CommonInput commonInput() {
@@ -133,6 +177,9 @@ public abstract class CommonPlatform implements Platform {
 	protected abstract void setScreen(@Nullable Screen screen);
 
 	protected abstract @Nullable Screen currentScreen();
+
+	/** The chat HUD; it moved from Gui to the new Hud class in 26.2. */
+	protected abstract ChatComponent chatComponent();
 
 	/** An empty clip region, for when nested scissors do not overlap. */
 	static ScreenRectangle emptyRectangle() {

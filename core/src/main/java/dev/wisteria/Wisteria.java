@@ -10,24 +10,34 @@ public final class Wisteria {
 	public static final String NAME = "Wisteria";
 	public static final Logger LOG = LoggerFactory.getLogger(NAME);
 
-	private static @Nullable Platform platform;
+	private static @Nullable Client client;
 
 	private Wisteria() {
 	}
 
 	/** Called once by the version-specific entrypoint when the game starts. */
 	public static void start(Platform platform) {
-		Wisteria.platform = platform;
-		LOG.info("{} loaded on Minecraft {}", NAME, platform.minecraftVersion());
+		if (client != null) {
+			throw new IllegalStateException("Wisteria has already started");
+		}
+
+		client = new Client(platform);
+		LOG.info("{} loaded on Minecraft {}: {} modules, profile \"{}\"",
+			NAME, platform.minecraftVersion(), client.modules().all().size(), client.config().profile());
 	}
 
-	/** The game we are running in. Only valid after {@link #start}. */
-	public static Platform platform() {
-		Platform current = platform;
+	/** The running client. Only valid after {@link #start}. */
+	public static Client client() {
+		Client current = client;
 		if (current == null) {
 			throw new IllegalStateException("Wisteria has not started yet");
 		}
 
 		return current;
+	}
+
+	/** The game we are running in. Only valid after {@link #start}. */
+	public static Platform platform() {
+		return client().platform();
 	}
 }

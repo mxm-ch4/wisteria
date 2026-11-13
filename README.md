@@ -6,7 +6,7 @@
   <img alt="Minecraft 26.1 – 26.3" src="https://img.shields.io/badge/Minecraft-26.1%20–%2026.3-B79CFF?style=flat-square&labelColor=17131F">
   <img alt="Loader: Fabric" src="https://img.shields.io/badge/Loader-Fabric-B79CFF?style=flat-square&labelColor=17131F">
   <img alt="Java 25" src="https://img.shields.io/badge/Java-25-B79CFF?style=flat-square&labelColor=17131F">
-  <img alt="Статус: этап 0 пройден" src="https://img.shields.io/badge/Статус-этап%200%20пройден-8B6CFF?style=flat-square&labelColor=17131F">
+  <img alt="Статус: этап 1 пройден" src="https://img.shields.io/badge/Статус-этап%201%20пройден-8B6CFF?style=flat-square&labelColor=17131F">
   <a href="LICENSE"><img alt="License: GPL-3.0" src="https://img.shields.io/badge/License-GPL--3.0-E9D8FF?style=flat-square&labelColor=17131F"></a>
 </p>
 
@@ -26,8 +26,9 @@
 </p>
 
 > [!NOTE]
-> Проект на старте. Сейчас в репозитории каркас, который собирается под 26.1.2, 26.2 и 26.3, слой совместимости
-> с игрой и [результаты разведки](docs/stage0-findings.md). Модулей, GUI и HUD ещё нет — скачивать пока нечего.
+> Проект на старте. Готово ядро: модули, настройки, конфиги с профилями и команды в чате, собирается под 26.1.2,
+> 26.2 и 26.3. Модулей пока три, и они простые (FullBright, ESP, Watermark); своего GUI и HUD ещё нет.
+> Релизов нет — собирать из исходников.
 
 <p align="center"><img src="assets/divider.svg" width="100%" alt=""></p>
 
@@ -96,8 +97,8 @@ OpenGL ↔ Vulkan, и всё, что написано в обход абстра
 | # | Что | Результат | Статус |
 |:---:|---|---|:---:|
 | **0** | Разведка | Рендер, события и звук проверены вживую; сборка под три версии — [находки](docs/stage0-findings.md) | ✅ |
-| **1** | Ядро поверх compat | `ModuleManager`, настройки, `EventBus`, конфиги с профилями, чат-команды, друзья/враги | ⏳ следующий |
-| **2** | Дизайн-система | Палитра, шрифты, спейсинг, motion, эффекты и демо-экран со всеми компонентами | — |
+| **1** | Ядро поверх compat | Модули, настройки, события, конфиги с профилями, чат-команды, друзья/враги — [как устроено](docs/core.md) | ✅ |
+| **2** | Дизайн-система | Палитра, шрифты, спейсинг, motion, эффекты и демо-экран со всеми компонентами | ⏳ следующий |
 | **3** | GUI | ClickGUI, компоненты, темы, сплэш | — |
 | **4** | HUD | `HudManager`, элементы, редактор расположения | — |
 | **5** | Музыка | Плеер, HUD-виджет, хоткеи, звуки интерфейса | — |
@@ -162,6 +163,12 @@ compat/v26_3/      отличия 26.3
 ./gradlew :v26_2:runClient
 ```
 
+Тесты ядра (без игры, секунды):
+
+```bash
+./gradlew :core:test
+```
+
 Шлюз версии без монитора (нужны Xvfb и Mesa; второй аргумент — `OPENGL` или `VULKAN`):
 
 ```bash
@@ -169,6 +176,18 @@ tools/gate.sh 26_2 VULKAN
 ```
 
 Кадры, лог и запись звука окажутся в `build/gate/`.
+
+## В игре
+
+Команды вводятся в чат с точкой; Tab дополняет. Полный список и формат конфигов — в [docs/core.md](docs/core.md).
+
+```
+.modules                     что есть
+.toggle esp                  включить или выключить
+.bind esp g                  повесить на клавишу
+.esp range 48                изменить настройку
+.profile save mining         сохранить набор настроек под именем
+```
 
 ## Оговорки
 
@@ -184,7 +203,7 @@ tools/gate.sh 26_2 VULKAN
 
 ```
 core/  compat/     код, см. «Архитектура»
-docs/              находки этапа 0, матрица версий, Grim-матрица
+docs/              ядро и команды, находки этапа 0, матрица версий, Grim-матрица
 tools/gate.sh      шлюз версии без монитора
 tools/brand/       генератор SVG из assets/
 assets/            логотип, баннер, палитра

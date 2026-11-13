@@ -16,6 +16,9 @@ public interface Platform {
 	/** The .minecraft directory of this instance. */
 	Path gameDirectory();
 
+	/** Runs the task on the client thread: right away if called from it, otherwise on its next iteration. */
+	void execute(Runnable task);
+
 	/** Frame and tick callbacks. Listeners are called in registration order, on the client thread. */
 	void listen(ClientListener listener);
 
@@ -26,4 +29,10 @@ public interface Platform {
 	PacketAdapter packets();
 
 	ScreenBackend screens();
+
+	ChatBackend chat();
+
+	WorldBackend world();
+
+	VisualBackend visuals();
 }

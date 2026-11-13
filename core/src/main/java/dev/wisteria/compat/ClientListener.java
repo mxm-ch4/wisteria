@@ -13,4 +13,8 @@ public interface ClientListener {
 	/** Once per frame while a world is loaded. Drawing is only valid inside this call. */
 	default void onRender3D(Renderer3D renderer, float tickDelta) {
 	}
+
+	/** The game is shutting down: last chance to save. */
+	default void onStop() {
+	}
 }

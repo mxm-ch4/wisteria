@@ -13,6 +13,7 @@ import java.util.function.Consumer;
 import net.fabricmc.fabric.api.client.rendering.v1.level.LevelExtractionContext;
 import net.fabricmc.fabric.api.client.rendering.v1.level.LevelExtractionEvents;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.components.ChatComponent;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.renderer.BindGroupLayouts;
 import net.minecraft.client.renderer.RenderPipelines;
@@ -73,5 +74,10 @@ public final class V26_3Platform extends CommonPlatform {
 	@Override
 	protected @Nullable Screen currentScreen() {
 		return Minecraft.getInstance().gui.screen();
+	}
+
+	@Override
+	protected ChatComponent chatComponent() {
+		return Minecraft.getInstance().gui.hud.getChat();
 	}
 }

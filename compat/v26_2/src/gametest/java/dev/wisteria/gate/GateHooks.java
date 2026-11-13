@@ -17,4 +17,8 @@ final class GateHooks {
 	static RenderTarget mainTarget(Minecraft minecraft) {
 		return minecraft.gameRenderer.mainRenderTarget();
 	}
+
+	static Object currentScreen(Minecraft minecraft) {
+		return minecraft.gui.screen();
+	}
 }

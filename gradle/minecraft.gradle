@@ -26,6 +26,9 @@ fabricApi {
 		enableGameTests = false
 		enableClientGameTests = true
 		eula = true
+		// The gate launches the game twice over the same directory to prove settings survive a restart;
+		// tools/gate.sh wipes the directory itself before the first launch.
+		clearRunDirectory = false
 	}
 }
 

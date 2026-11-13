@@ -36,6 +36,7 @@ final class Commands {
 		manager.register(new ThemeCommand());
 		manager.register(new Design());
 		manager.register(new NetCommand());
+		manager.register(new Bench());
 	}
 
 	private static Module module(Client client, String name) {
@@ -518,6 +519,47 @@ final class Commands {
 			}
 
 			return args.size() == 2 && args.get(0).equalsIgnoreCase("deny") ? client.net().allowedHosts() : List.of();
+		}
+	}
+
+	private static final class Bench extends Command {
+		private @org.jspecify.annotations.Nullable BoxBench current;
+
+		Bench() {
+			super("bench", List.of(), "boxes <count>", "Measures the frame rate with that many boxes on screen for 5 seconds");
+		}
+
+		@Override
+		public void run(Client client, List<String> args, Output out) {
+			if (args.size() != 2 || !args.get(0).equalsIgnoreCase("boxes")) {
+				throw new CommandException("Usage: " + client.commands().prefix() + "bench " + this.usage());
+			}
+
+			int count;
+			try {
+				count = Integer.parseInt(args.get(1));
+			} catch (NumberFormatException e) {
+				throw new CommandException("\"" + args.get(1) + "\" is not a number");
+			}
+
+			if (count < 1 || count > BoxBench.MAX_BOXES) {
+				throw new CommandException("Count must be from 1 to " + BoxBench.MAX_BOXES);
+			}
+
+			if (!client.platform().world().isLoaded()) {
+				throw new CommandException("Join a world first");
+			}
+
+			if (this.current != null && this.current.isRunning()) {
+				throw new CommandException("A bench is already running");
+			}
+
+			this.current = BoxBench.start(client, out, count);
+		}
+
+		@Override
+		public List<String> complete(Client client, List<String> args) {
+			return args.size() == 1 ? List.of("boxes") : args.size() == 2 ? List.of("1000", "10000", "50000") : List.of();
 		}
 	}
 }

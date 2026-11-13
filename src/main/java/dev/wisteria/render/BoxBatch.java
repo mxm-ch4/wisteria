@@ -14,7 +14,7 @@ public final class BoxBatch {
 	private static final int FLOATS = 6;
 
 	private final float strokeWidth;
-	private final boolean throughWalls;
+	private boolean throughWalls;
 	private float[] bounds = new float[FLOATS * 64];
 	private int[] colors = new int[2 * 64];
 	private int size;
@@ -25,7 +25,8 @@ public final class BoxBatch {
 
 	/**
 	 * @param strokeWidth outline width in pixels, the same for every box of the batch
-	 * @param throughWalls true to draw over everything, false to be hidden by blocks in front
+	 * @param throughWalls true to draw over everything, false to be hidden by blocks in front, as in
+	 *     {@link Renderer3D#box}; can be changed later with {@link #setThroughWalls}
 	 */
 	public BoxBatch(float strokeWidth, boolean throughWalls) {
 		this.strokeWidth = strokeWidth;
@@ -76,6 +77,11 @@ public final class BoxBatch {
 
 	public boolean throughWalls() {
 		return this.throughWalls;
+	}
+
+	/** Switches between drawing over blocks and behind them. Takes effect next frame; nothing is re-uploaded. */
+	public void setThroughWalls(boolean throughWalls) {
+		this.throughWalls = throughWalls;
 	}
 
 	/** Changes whenever the contents change; the renderer re-uploads when it does. */

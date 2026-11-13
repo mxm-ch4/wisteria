@@ -90,8 +90,13 @@ ClickGUI, бинды, сохранение включённости и наст�
 - **3D** (в `Render3D`): `renderer.box(minX, minY, minZ, maxX, maxY, maxZ, strokeArgb, strokeWidth, fillArgb, throughWalls)`,
   `renderer.line(x1, y1, z1, x2, y2, z2, argb, width, throughWalls)`, положение камеры — `cameraX()`…
 - **Много боксов** (Xray, Search, хранилища — больше нескольких сотен): `BoxBatch` в поле модуля, перестраивать
-  (`clear()`, `add(...)`) только когда набор поменялся, каждый кадр — `renderer.boxes(batch)`. Геометрия лежит на GPU:
-  10 000 боксов — 5 мкс CPU на кадр. Поштучный `box` — для того, что движется каждый кадр (сущности).
+  (`clear()`, `add(minX, minY, minZ, maxX, maxY, maxZ, strokeArgb, fillArgb)`) только когда набор поменялся, каждый кадр —
+  `renderer.boxes(batch)`. Геометрия лежит на GPU: 10 000 боксов — 5 мкс CPU на кадр. Поштучный `box` — для того,
+  что движется каждый кадр (сущности).
+  - `new BoxBatch(strokeWidth, throughWalls)`: толщина контура одна на весь пакет; `throughWalls` — как у `box`:
+    `true` — поверх всего, `false` — блоки впереди закрывают. `batch.setThroughWalls(...)` переключает со следующего
+    кадра без перестройки — под настройку модуля.
+  - Проверить на своей видеокарте: `.bench boxes 10000` — 5 секунд с пакетом вокруг камеры, в чат — средний fps и худший кадр.
 - **2D** (в `Render2D`): `roundedRect`, `roundedOutline`, `shadow`, `gradient`, `text(Type…)`. Цвета и размеры — только из
   дизайн-системы: `client().themes().current().accent()`, `Metrics.Type.LABEL.draw(...)`, см. `docs/design-system.md`.
 - Сырой OpenGL запрещён: только эти хелперы (бэкенд игры может быть Vulkan).

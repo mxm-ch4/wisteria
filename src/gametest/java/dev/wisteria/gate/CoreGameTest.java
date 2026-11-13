@@ -56,6 +56,8 @@ public final class CoreGameTest implements FabricClientGameTest {
 		TestSingleplayerContext world = GameTestKit.newWorld(context);
 		this.events(context, world, client);
 		this.boxes(context, client);
+		this.behindAWall(context, world, client);
+		this.bench(context, client);
 		this.kicked(context, world);
 		try {
 			world.close();
@@ -177,7 +179,11 @@ public final class CoreGameTest implements FabricClientGameTest {
 	private void kicked(ClientGameTestContext context, TestSingleplayerContext world) {
 		world.getServer().runOnServer(server -> server.getPlayerList().getPlayers().getFirst().connection
 			.disconnect(net.minecraft.network.chat.Component.literal("wisteria probe kick")));
-		context.waitTicks(20);
+		// Under load the client can take a while to notice; wait for the event rather than a fixed time.
+		context.waitFor(minecraft -> this.any(Events.Disconnect.class, event -> true), 600);
+		// The event fires first; then the game leaves the world and shows its "disconnected" screen.
+		context.waitFor(minecraft -> minecraft.level == null
+			&& GateHooks.currentScreen(minecraft) instanceof net.minecraft.client.gui.screens.DisconnectedScreen, 600);
 		check("events: Disconnect carries the server's reason", this.any(Events.Disconnect.class, event -> event.text().equals("wisteria probe kick")));
 	}
 
@@ -218,6 +224,51 @@ public final class CoreGameTest implements FabricClientGameTest {
 		// What is left for the batch here is the software GPU transforming vertices; on a real GPU that is free.
 		check("render: per-box frame cost of a batch is under 60% of single boxes (" + batchCost + " vs " + singleCost + " us)",
 			batchCost * 10 < singleCost * 6);
+	}
+
+	// A batch box behind a stone wall: seen through it with throughWalls on, hidden by it with it off.
+	private void behindAWall(ClientGameTestContext context, TestSingleplayerContext world, Client client) {
+		BlockPos feet = context.computeOnClient(minecraft -> minecraft.player.blockPosition());
+		int x = feet.getX();
+		int y = feet.getY();
+		int z = feet.getZ();
+		// Facing +Z, looking straight ahead; the wall 3 blocks in front, the box 3 blocks behind it at eye height.
+		world.getServer().runCommand("tp @a " + (x + 0.5) + " " + y + " " + (z + 0.5) + " 0 0");
+		world.getServer().runCommand("fill " + (x - 4) + " " + (y - 1) + " " + (z + 3) + " " + (x + 4) + " " + (y + 4) + " " + (z + 3) + " minecraft:stone");
+		context.waitTicks(10);
+		BoxBatch batch = new BoxBatch(2.0F, true);
+		batch.add(x, y + 1, z + 6, x + 1, y + 2, z + 7, 0xFFB79CFF, 0xE0B79CFF);
+		EventBus.Subscription<Events.Render3D> draw = client.bus().subscribe(Events.Render3D.class, event -> event.renderer().boxes(batch));
+		context.waitTicks(5);
+		GameTestKit.Frame through = GameTestKit.grabLastFrame(context, client.platform(), "core-wall-through");
+		context.runOnClient(minecraft -> batch.setThroughWalls(false));
+		context.waitTicks(5);
+		GameTestKit.Frame hidden = GameTestKit.grabLastFrame(context, client.platform(), "core-wall-hidden");
+		context.runOnClient(minecraft -> client.bus().unsubscribe(draw));
+		int seen = violetAroundCentre(through);
+		int behind = violetAroundCentre(hidden);
+		check("render: a batch with throughWalls shows through the wall (" + seen + " violet pixels)", seen > 400);
+		check("render: a batch without throughWalls is hidden by the wall (" + behind + " violet pixels)", behind < 10);
+		world.getServer().runCommand("fill " + (x - 4) + " " + (y - 1) + " " + (z + 3) + " " + (x + 4) + " " + (y + 4) + " " + (z + 3) + " minecraft:air");
+	}
+
+	// Just the box's own square on screen: earlier gate tests leave violet HUD panels to the left of it.
+	private static int violetAroundCentre(GameTestKit.Frame frame) {
+		int size = frame.height() / 16;
+		return frame.count(frame.width() / 2 - size, frame.height() / 2 - size, size * 2, size * 2, GameTestKit::isViolet);
+	}
+
+	// What the owner runs on their own card: .bench boxes 10000 reports once, after 5 seconds.
+	private void bench(ClientGameTestContext context, Client client) {
+		GameTestKit.chat(context, ".bench boxes 10000");
+		// Five seconds of frames; ticks run slower than real time under the headless software GPU.
+		context.waitFor(minecraft -> chatLines(minecraft).stream().anyMatch(line -> line.contains("Bench: 10000 boxes,")), 1200);
+		context.waitTicks(20);
+		List<String> lines = context.computeOnClient(CoreGameTest::chatLines);
+		List<String> results = lines.stream().filter(line -> line.contains("Bench: 10000 boxes,")).toList();
+		LOG.info("render: {}", results);
+		check("render: .bench boxes 10000 reports average fps and the worst frame once",
+			results.size() == 1 && results.getFirst().contains("fps average, worst frame"));
 	}
 
 	private interface Cell {

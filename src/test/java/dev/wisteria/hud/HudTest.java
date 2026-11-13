@@ -274,4 +274,23 @@ class HudTest {
 		this.platform.typeInChat(".hudeditor hud-scale 5");
 		assertEquals(2.0F, this.client.hud().globalScale(), "kept in range");
 	}
+
+	@Test
+	void theHelpLineKeepsClearOfElementsAndTheHotbar() {
+		for (String id : List.of("potions", "notifications", "fps", "watermark")) {
+			this.platform.typeInChat(".toggle " + id + " on");
+		}
+
+		// Put one element right under the toolbar, where the help line goes first.
+		this.platform.typeInChat(".hud fps top 0 60");
+		HudEditorScreen editor = this.openEditor();
+		this.editorFrame(editor, 0.0F, 0.0F);
+		HudLayout.Rect hint = editor.hintBox();
+		assertNotNull(hint);
+		for (HudManager.Drawn item : this.client.hud().lastDrawn()) {
+			assertFalse(HudEditorScreen.overlaps(item.rect(), hint), "the help line covers " + item.element().id() + ": " + hint + " vs " + item.rect());
+		}
+
+		assertTrue(hint.bottom() <= 540.0F - 40.0F, "never on the hotbar: " + hint);
+	}
 }

@@ -107,9 +107,8 @@ public final class HudEditorScreen implements ScreenBackend.ClientScreen {
 			renderer.rect(0.0F, this.guideY - 0.5F, this.width, 1.0F, Colors.withAlpha(theme.accent(), 0xC0));
 		}
 
-		this.toolbar(renderer, theme);
-		String hint = "Drag to move  ·  Corners or wheel: size  ·  Shift: no snapping  ·  Arrows: nudge  ·  Right click: reset  ·  Esc: done";
-		Type.CAPTION.draw(renderer, hint, (this.width - Type.CAPTION.width(renderer, hint)) / 2.0F, this.height - 14.0F, theme.textMuted());
+		float toolbarBottom = this.toolbar(renderer, theme);
+		this.hint(renderer, theme, toolbarBottom);
 		this.controls.end();
 	}
 
@@ -138,7 +137,8 @@ public final class HudEditorScreen implements ScreenBackend.ClientScreen {
 		renderer.roundedOutline(rect.x() - 2.0F, rect.y() - 2.0F, rect.width() + 4.0F, rect.height() + 4.0F, Metrics.Radius.M + 1.0F, active ? 1.5F : 1.0F, colour);
 		if (active || state.hovered()) {
 			HudLayout.Placement placement = this.client.hud().placement(element);
-			String label = element.name() + "  " + placement.anchor().id();
+			// One label for name, anchor and size, so nothing else can overlap it.
+			String label = element.name() + "  " + placement.anchor().id() + "  " + HudScale.label(element.scale());
 			float labelWidth = Type.CAPTION.width(renderer, label) + 8.0F;
 			float labelY = rect.y() > 16.0F ? rect.y() - 14.0F : rect.bottom() + 3.0F;
 			float labelX = Math.max(0.0F, Math.min(rect.x(), this.width - labelWidth));
@@ -151,7 +151,49 @@ public final class HudEditorScreen implements ScreenBackend.ClientScreen {
 		}
 	}
 
-	private void toolbar(Renderer2D renderer, Theme theme) {
+	static final String HINT = "Drag to move  ·  Corners or wheel: size  ·  Shift: no snapping  ·  Arrows: nudge  ·  Right click: reset  ·  Esc: done";
+	static final String HINT_SHORT = "Drag · corners/wheel: size · Shift: free · Esc: done";
+
+	/**
+	 * The help line: under the toolbar, or else above the hotbar, wherever it covers no element; never over the hotbar.
+	 *
+	 * @return where it went, for tests
+	 */
+	HudLayout.Rect hint(Renderer2D renderer, Theme theme, float toolbarBottom) {
+		String text = Type.CAPTION.width(renderer, HINT) + 16.0F <= this.width ? HINT : HINT_SHORT;
+		float width = Type.CAPTION.width(renderer, text) + 12.0F;
+		float height = 13.0F;
+		float x = (this.width - width) / 2.0F;
+		// The hotbar, health and food take about the bottom 40 GUI pixels in the middle.
+		float[] candidates = {toolbarBottom + 4.0F, this.height - 40.0F - height - 6.0F, toolbarBottom + 4.0F + height + 4.0F, this.height / 2.0F};
+		HudLayout.Rect chosen = new HudLayout.Rect(x, candidates[0], width, height);
+		for (float y : candidates) {
+			HudLayout.Rect rect = new HudLayout.Rect(x, y, width, height);
+			if (this.drawn.stream().noneMatch(item -> overlaps(item.rect(), rect))) {
+				chosen = rect;
+				break;
+			}
+		}
+
+		this.hintBox = chosen;
+		renderer.roundedRect(chosen.x(), chosen.y(), chosen.width(), chosen.height(), 6.5F, Colors.withAlpha(theme.surface(), 0xC8));
+		Type.CAPTION.draw(renderer, text, chosen.x() + 6.0F, chosen.y() + (height - Type.CAPTION.lineHeight(renderer)) / 2.0F, theme.textMuted());
+		return chosen;
+	}
+
+	private HudLayout.@Nullable Rect hintBox;
+
+	/** Where the help line was drawn last frame. */
+	public HudLayout.@Nullable Rect hintBox() {
+		return this.hintBox;
+	}
+
+	static boolean overlaps(HudLayout.Rect a, HudLayout.Rect b) {
+		return a.x() < b.right() && b.x() < a.right() && a.y() < b.bottom() && b.y() < a.bottom();
+	}
+
+	/** @return the bottom of the toolbar */
+	private float toolbar(Renderer2D renderer, Theme theme) {
 		this.chips.clear();
 		List<HudElement> elements = this.client.hud().elements();
 		List<Float> widths = new ArrayList<>();
@@ -221,6 +263,7 @@ public final class HudEditorScreen implements ScreenBackend.ClientScreen {
 		Type.CAPTION.draw(renderer, sizeLabel, sizeX + 7.0F, y + (CHIP_HEIGHT - Type.CAPTION.lineHeight(renderer)) / 2.0F,
 			sized ? theme.text() : theme.textDisabled());
 		this.resetSizeBox = new HudLayout.Rect(sizeX, y, sizeWidth, CHIP_HEIGHT);
+		return y + CHIP_HEIGHT;
 	}
 
 	private HudLayout.@Nullable Rect resetBox;
@@ -295,14 +338,7 @@ public final class HudEditorScreen implements ScreenBackend.ClientScreen {
 			renderer.roundedRect(cx - size / 2.0F + 1.5F, cy - size / 2.0F + 1.5F, size - 3.0F, size - 3.0F, 1.0F, corner == hot ? theme.accent() : theme.surface());
 		}
 
-		if (this.resizing != null) {
-			String label = HudScale.label(this.resizing.scale());
-			float width = Type.MONO.width(renderer, label) + 8.0F;
-			float x = Math.min(mouseX + 10.0F, this.width - width);
-			float y = Math.max(0.0F, mouseY - 18.0F);
-			renderer.roundedRect(x, y, width, 13.0F, 3.0F, theme.accent());
-			Type.MONO.draw(renderer, label, x + 4.0F, y + 1.0F, theme.onAccent());
-		}
+
 	}
 
 	private boolean free() {

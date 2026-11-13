@@ -36,6 +36,11 @@ public final class GameChat implements ChatBackend {
 		});
 	}
 
+	private static final net.minecraft.network.chat.FontDescription REGULAR =
+		new net.minecraft.network.chat.FontDescription.Resource(net.minecraft.resources.Identifier.fromNamespaceAndPath("wisteria", "chat"));
+	private static final net.minecraft.network.chat.FontDescription BOLD =
+		new net.minecraft.network.chat.FontDescription.Resource(net.minecraft.resources.Identifier.fromNamespaceAndPath("wisteria", "chat_bold"));
+
 	@Override
 	public void print(String message) {
 		LOG.info("[chat] {}", message);
@@ -46,9 +51,10 @@ public final class GameChat implements ChatBackend {
 				return;
 			}
 
-			Component line = Component.literal("Wisteria ").withColor(ACCENT)
-				.append(Component.literal("» ").withColor(0x9A92AD))
-				.append(Component.literal(message).withColor(TEXT));
+			// In the client's own type (Inter, through the game's TrueType support), still only added to this chat locally.
+			Component line = Component.literal("Wisteria ").withStyle(style -> style.withColor(ACCENT).withFont(BOLD))
+				.append(Component.literal("» ").withStyle(style -> style.withColor(0x9A92AD).withFont(REGULAR)))
+				.append(Component.literal(message).withStyle(style -> style.withColor(TEXT).withFont(REGULAR)));
 			this.platform.chatComponent().addClientSystemMessage(line);
 		});
 	}

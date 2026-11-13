@@ -35,6 +35,7 @@ final class Commands {
 		manager.register(new Prefix());
 		manager.register(new ThemeCommand());
 		manager.register(new Design());
+		manager.register(new NetCommand());
 	}
 
 	private static Module module(Client client, String name) {
@@ -476,6 +477,47 @@ final class Commands {
 		@Override
 		public void run(Client client, List<String> args, Output out) {
 			client.platform().screens().open(new DesignScreen(client));
+		}
+	}
+
+	private static final class NetCommand extends Command {
+		NetCommand() {
+			super("net", List.of(), "list / allow <host> / deny <host>", "Which hosts the client may connect to (only for modules that need it)");
+		}
+
+		@Override
+		public void run(Client client, List<String> args, Output out) {
+			dev.wisteria.io.Net net = client.net();
+			String action = args.isEmpty() ? "list" : args.get(0).toLowerCase(Locale.ROOT);
+			if (action.equals("list") && args.size() <= 1) {
+				List<String> hosts = net.allowedHosts();
+				out.print(hosts.isEmpty() ? "No hosts allowed: nothing connects anywhere" : "Allowed hosts: " + String.join(", ", hosts));
+				return;
+			}
+
+			if (args.size() != 2 || !(action.equals("allow") || action.equals("deny"))) {
+				throw new CommandException("Usage: " + client.commands().prefix() + "net " + this.usage());
+			}
+
+			String host = dev.wisteria.io.Net.normalizeHost(args.get(1));
+			if (host == null) {
+				throw new CommandException("\"" + args.get(1) + "\" is not a host name, e.g. api.telegram.org");
+			}
+
+			if (action.equals("allow")) {
+				out.print(net.allow(host) ? host + " allowed" : host + " is already allowed");
+			} else {
+				out.print(net.deny(host) ? host + " no longer allowed" : host + " was not allowed");
+			}
+		}
+
+		@Override
+		public List<String> complete(Client client, List<String> args) {
+			if (args.size() == 1) {
+				return List.of("list", "allow", "deny");
+			}
+
+			return args.size() == 2 && args.get(0).equalsIgnoreCase("deny") ? client.net().allowedHosts() : List.of();
 		}
 	}
 }

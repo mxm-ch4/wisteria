@@ -11,6 +11,7 @@
 			"dev.wisteria.gate.GateTest",
 			"dev.wisteria.gate.TextQualityGameTest",
 			"dev.wisteria.gate.ClickEverythingGameTest",
+			"dev.wisteria.gate.CoreGameTest",
 			"dev.wisteria.gate.modules.FullBrightGameTest"
 		]
 	},

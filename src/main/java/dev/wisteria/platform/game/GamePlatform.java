@@ -53,6 +53,7 @@ public final class GamePlatform implements Platform {
 	private final GameChat chat = new GameChat(this);
 	private final GameWorld world = new GameWorld();
 	private final GameVisuals visuals = new GameVisuals();
+	private final BoxBatchRenderer batches = new BoxBatchRenderer();
 	private boolean titleScreenSeen;
 
 	/** The installed platform, or null before the mod initialises. Mixins go through this. */
@@ -64,6 +65,7 @@ public final class GamePlatform implements Platform {
 	public final void install() {
 		instance = this;
 		this.chat.install();
+		GameEvents.install();
 
 		ClientLifecycleEvents.CLIENT_STOPPING.register(minecraft -> {
 			for (ClientListener listener : this.listeners) {
@@ -119,13 +121,17 @@ public final class GamePlatform implements Platform {
 			}
 		});
 
+		// Batches queued during extraction are drawn at the end of the world's main pass, over terrain and entities.
+		net.fabricmc.fabric.api.client.rendering.v1.level.LevelRenderEvents.END_MAIN.register(context ->
+			this.batches.draw(context.levelState().cameraRenderState.pos));
+
 		// Once per frame on the client thread, while the game collects what to draw: gizmos may be added here.
 		this.registerLevelExtraction(context -> {
 			if (this.listeners.isEmpty()) {
 				return;
 			}
 
-			GizmoRenderer3D renderer = new GizmoRenderer3D(context.camera());
+			GizmoRenderer3D renderer = new GizmoRenderer3D(context.camera(), this.batches);
 			float tickDelta = context.deltaTracker().getGameTimeDeltaPartialTick(false);
 			for (ClientListener listener : this.listeners) {
 				listener.onRender3D(renderer, tickDelta);

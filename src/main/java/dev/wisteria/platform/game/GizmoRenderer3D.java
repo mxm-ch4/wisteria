@@ -1,5 +1,6 @@
 package dev.wisteria.platform.game;
 
+import dev.wisteria.render.BoxBatch;
 import dev.wisteria.render.Renderer3D;
 import net.minecraft.client.Camera;
 import net.minecraft.gizmos.GizmoProperties;
@@ -14,7 +15,10 @@ final class GizmoRenderer3D implements Renderer3D {
 	private final Vec3 position;
 	private final Vector3fc forward;
 
-	GizmoRenderer3D(Camera camera) {
+	private final BoxBatchRenderer batches;
+
+	GizmoRenderer3D(Camera camera, BoxBatchRenderer batches) {
+		this.batches = batches;
 		this.position = camera.position();
 		this.forward = camera.forwardVector();
 	}
@@ -65,6 +69,11 @@ final class GizmoRenderer3D implements Renderer3D {
 		if (throughWalls) {
 			properties.setAlwaysOnTop();
 		}
+	}
+
+	@Override
+	public void boxes(BoxBatch batch) {
+		this.batches.queue(batch);
 	}
 
 	@Override

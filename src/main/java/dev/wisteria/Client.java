@@ -9,6 +9,10 @@ import dev.wisteria.render.Renderer3D;
 import dev.wisteria.config.ConfigManager;
 import dev.wisteria.event.EventBus;
 import dev.wisteria.event.Events;
+import dev.wisteria.io.Net;
+import dev.wisteria.io.Secrets;
+import dev.wisteria.io.Storage;
+import java.nio.file.Path;
 import dev.wisteria.module.Module;
 import dev.wisteria.module.ModuleManager;
 import dev.wisteria.modules.Modules;
@@ -29,6 +33,9 @@ public final class Client {
 	private final ModuleManager modules;
 	private final CommandManager commands;
 	private final ConfigManager config;
+	private final Path root;
+	private final Secrets secrets;
+	private final Net net;
 
 	public Client(Platform platform) {
 		this(platform, Modules.create());
@@ -37,20 +44,23 @@ public final class Client {
 	/** @param modules what to register instead of the shipped set; tests use this to add the module under test */
 	public Client(Platform platform, List<Module> modules) {
 		this.platform = platform;
+		this.root = platform.gameDirectory().resolve(Wisteria.ID);
+		this.secrets = new Secrets(this.root);
+		this.net = new Net(this.secrets);
 		this.modules = new ModuleManager(this);
 		this.commands = new CommandManager(this);
-		this.config = new ConfigManager(this, platform.gameDirectory().resolve(Wisteria.ID));
+		this.config = new ConfigManager(this, this.root);
 
 		modules.forEach(this.modules::register);
 
 		// A handler that throws takes its own module down, not the game.
 		this.bus.onError((subscription, error) -> {
-			Wisteria.LOG.error("Event handler failed", error);
+			Wisteria.LOG.error("Event handler failed", this.secrets.redact(error));
 			if (subscription.owner() instanceof Module module) {
 				platform.execute(() -> {
 					if (module.isEnabled()) {
 						this.setEnabled(module, false);
-						platform.chat().print(module.name() + " crashed and was switched off: " + error);
+						platform.chat().print(module.name() + " crashed and was switched off: " + this.secrets.redact(error.toString()));
 					}
 				});
 			}
@@ -62,6 +72,11 @@ public final class Client {
 		this.commands.onChange(this.config::markDirty);
 		this.themes.onChange(this.config::markDirty);
 		this.gui.onChange(this.config::markDirty);
+		this.net.onChange(this.config::markDirty);
+		this.net.onSuspend((id, reason) -> platform.execute(() -> {
+			Module module = this.modules.get(id);
+			platform.chat().print((module != null ? module.name() : id) + ": " + reason);
+		}));
 		this.bridge();
 	}
 
@@ -107,6 +122,7 @@ public final class Client {
 			@Override
 			public void onStop() {
 				Client.this.config.save();
+				Client.this.net.close();
 			}
 		});
 
@@ -140,8 +156,8 @@ public final class Client {
 			module.setEnabled(enabled);
 			return true;
 		} catch (RuntimeException e) {
-			Wisteria.LOG.error("{} failed to {}", module.name(), enabled ? "start" : "stop", e);
-			this.platform.chat().print(module.name() + " could not be switched " + (enabled ? "on" : "off") + ": " + e);
+			Wisteria.LOG.error("{} failed to {}", module.name(), enabled ? "start" : "stop", this.secrets.redact(e));
+			this.platform.chat().print(module.name() + " could not be switched " + (enabled ? "on" : "off") + ": " + this.secrets.redact(e.toString()));
 			return false;
 		}
 	}
@@ -181,5 +197,23 @@ public final class Client {
 
 	public ConfigManager config() {
 		return this.config;
+	}
+
+	/** {@code .minecraft/wisteria}: everything the client keeps on disk lives under it. */
+	public Path root() {
+		return this.root;
+	}
+
+	/** The folder of one module; modules use {@code Module.storage()}. */
+	public Storage storage(Module module) {
+		return new Storage(this.root, module.id());
+	}
+
+	public Secrets secrets() {
+		return this.secrets;
+	}
+
+	public Net net() {
+		return this.net;
 	}
 }

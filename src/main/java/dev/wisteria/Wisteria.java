@@ -36,6 +36,17 @@ public final class Wisteria {
 		return current;
 	}
 
+	/**
+	 * Posts an event on the client's bus; does nothing before the client has started. For hooks in the game
+	 * (mixins, platform code) that fire events.
+	 *
+	 * @return the event, so a caller can read back whether it was cancelled
+	 */
+	public static <E> E post(E event) {
+		Client current = client;
+		return current != null ? current.bus().post(event) : event;
+	}
+
 	/** The game we are running in. Only valid after {@link #start}. */
 	public static Platform platform() {
 		return client().platform();

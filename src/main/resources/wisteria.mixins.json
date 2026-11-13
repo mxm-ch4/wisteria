@@ -3,10 +3,15 @@
 	"package": "dev.wisteria.mixin",
 	"compatibilityLevel": "JAVA_25",
 	"client": [
+		"ClientCommonPacketListenerMixin",
+		"ClientLevelMixin",
+		"ClientPacketListenerMixin",
 		"CommandSuggestionsMixin",
+		"GuiMixin",
 		"ConnectionMixin",
 		"KeyboardHandlerMixin",
-		"LightmapMixin"
+		"LightmapMixin",
+		"MultiPlayerGameModeMixin"
 	],
 	"injectors": {
 		"defaultRequire": 1

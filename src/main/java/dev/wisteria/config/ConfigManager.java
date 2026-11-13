@@ -28,7 +28,7 @@ import org.jspecify.annotations.Nullable;
 /**
  * Everything that survives a restart, as JSON under {@code .minecraft/wisteria/}:
  * <ul>
- * <li>{@code client.json}: the active profile, the command prefix and the theme;</li>
+ * <li>{@code client.json}: the active profile, the command prefix, the theme and the hosts the user allowed;</li>
  * <li>{@code social.json}: friends and enemies, shared by all profiles;</li>
  * <li>{@code profiles/<name>.json}: which modules are on, their binds and settings.</li>
  * </ul>
@@ -97,6 +97,11 @@ public final class ConfigManager {
 				}
 
 				this.client.themes().load(string(clientJson, "theme"), accent);
+				JsonObject net = object(clientJson, "net");
+				if (net != null) {
+					this.client.net().load(strings(net, "allowedHosts"));
+				}
+
 				JsonObject gui = object(clientJson, "gui");
 				if (gui != null) {
 					this.client.gui().load(gui);
@@ -146,6 +151,9 @@ public final class ConfigManager {
 			Integer accent = this.client.themes().customAccent();
 			clientJson.addProperty("accent", accent != null ? ColorSetting.toHex(accent) : null);
 			clientJson.add("gui", this.client.gui().toJson());
+			JsonObject net = new JsonObject();
+			net.add("allowedHosts", array(this.client.net().allowedHosts()));
+			clientJson.add("net", net);
 			this.write(this.directory.resolve("client.json"), clientJson);
 
 			JsonObject social = new JsonObject();

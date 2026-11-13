@@ -1,7 +1,12 @@
 package dev.wisteria.module;
 
 import dev.wisteria.Client;
+import dev.wisteria.io.Net;
+import dev.wisteria.io.Secret;
+import dev.wisteria.io.Storage;
 import dev.wisteria.platform.Platform;
+import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.player.LocalPlayer;
@@ -124,7 +129,31 @@ public abstract class Module {
 
 	/** Prints a line in chat, prefixed with the module's name. Client-side only; nothing is sent. */
 	protected final void info(String message) {
-		this.client().platform().chat().print(this.name + ": " + message);
+		Client current = this.client();
+		current.platform().chat().print(this.name + ": " + current.secrets().redact(message));
+	}
+
+	/** This module's folder, {@code .minecraft/wisteria/data/<id>/}: the only place it reads and writes files. */
+	protected final Storage storage() {
+		return this.client().storage(this);
+	}
+
+	/**
+	 * A token or key from {@code .minecraft/wisteria/.env}; empty if the user has not put it there.
+	 *
+	 * @throws SecurityException for modules without the SECRETS permission
+	 */
+	protected final Optional<Secret> secret(String name) {
+		return this.client().secrets().get(this.id, name);
+	}
+
+	/**
+	 * Sends an HTTPS request to a host the user allowed. Completes off the client thread.
+	 *
+	 * @throws SecurityException for modules without the NET permission
+	 */
+	protected final CompletableFuture<Net.Response> send(Net.Request request) {
+		return this.client().net().send(this.id, request);
 	}
 
 	/** The running client. Only valid once the module is registered, so not in the constructor. */

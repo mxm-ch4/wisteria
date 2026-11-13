@@ -36,6 +36,26 @@ public final class ModuleManager {
 		return this.modules.get(name.toLowerCase(Locale.ROOT).replaceAll("[^a-z0-9]", ""));
 	}
 
+	/**
+	 * The registered instance of a module class, for mixins: {@code client.modules().get(Nuker.class)}.
+	 * Null if it is not registered (as in a test that registers only some modules).
+	 */
+	public <M extends Module> @Nullable M get(Class<M> type) {
+		for (Module module : this.modules.values()) {
+			if (module.getClass() == type) {
+				return type.cast(module);
+			}
+		}
+
+		return null;
+	}
+
+	/** True if a module of this class is registered and on: the usual question a mixin asks. */
+	public boolean isEnabled(Class<? extends Module> type) {
+		Module module = this.get(type);
+		return module != null && module.isEnabled();
+	}
+
 	public List<Module> all() {
 		return Collections.unmodifiableList(new ArrayList<>(this.modules.values()));
 	}

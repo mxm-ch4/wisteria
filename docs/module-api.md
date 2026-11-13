@@ -57,17 +57,28 @@ ClickGUI, бинды, сохранение включённости и наст�
 
 ## События
 
-| Событие | Когда | Поток |
-|---|---|---|
-| `Events.TickStart` | каждый тик, до тика игры | клиентский |
-| `Events.Tick` | каждый тик (20/с), после тика игры | клиентский |
-| `Events.Render2D` | каждый кадр HUD: `renderer()`, `tickDelta()` | клиентский |
-| `Events.Render3D` | каждый кадр в мире: `renderer()`, `tickDelta()` | клиентский |
-| `Events.KeyInput` | клавиша: `key()`, `action()`, `inScreen()` | клиентский |
-| `Events.PacketSend` | пакет уходит: `packet()`, `name()`, `cancel()` | сетевой или клиентский |
-| `Events.PacketReceive` | пакет пришёл: `packet()`, `name()`, `cancel()` | **сетевой** |
-| `Events.Join`, `Events.Leave` | вход в мир и выход: сбросить состояние | клиентский |
+Все — на **клиентском потоке**, кроме пакетов. «Отмена» — `event.cancel()`: событие не дойдёт до игры.
 
+| Событие | Когда | Данные | Отмена |
+|---|---|---|---|
+| `TickStart`, `Tick` | каждый тик (20/с), до и после тика игры | — | — |
+| `Render2D`, `Render3D` | каждый кадр: HUD и мир | `renderer()`, `tickDelta()` | — |
+| `KeyInput` | клавиша | `key()`, `action()`, `inScreen()` | — |
+| `PacketSend` | пакет уходит; **сетевой или клиентский поток** | `packet()`, `name()` | да |
+| `PacketReceive` | пакет пришёл; **сетевой поток** | `packet()`, `name()` | да |
+| `Join`, `Leave` | вход в мир и выход (любой): сбросить состояние | — | — |
+| `ChunkLoad`, `ChunkUnload` | чанк пришёл с сервера / сейчас уйдёт | `chunk()` — `LevelChunk`, блоки читаются | — |
+| `BlockUpdate` | блок в загруженном мире сменился (сервер или своё предсказание; не для целых чанков) | `pos()`, `oldState()`, `newState()` | — |
+| `EntityAdd`, `EntityRemove` | сущность появилась в мире клиента / ушла (дальность, смерть) | `entity()` | — |
+| `ContainerOpen` | сервер открыл контейнер | `containerId()`, `menu()` (`"minecraft:generic_9x3"`), `title()`, `pos()` | — |
+| `ContainerContent` | пришло полное содержимое | `items()` (контейнер, затем инвентарь), `containerSlots()`, `containerItems()`, `pos()` | — |
+| `ChatReceive` | строка в чат | `text()`, `message()`, `system()`, `sender()`, `overlay()` | да — строка не покажется |
+| `Death`, `Respawn` | игрок умер (один раз) / снова жив | `position()`, `dimension()` | — |
+| `ScreenOpen` | экран открывается (явно, не автоматический после закрытия) | `screen()` | да — не откроется |
+| `ScreenClose` | экран закрывается или заменяется | `screen()` | — |
+| `Disconnect` | сервер оборвал соединение (кик, бан, таймаут); до `Leave`. Свой выход — только `Leave` | `reason()`, `text()` | — |
+
+`pos()` контейнера — блок, по которому игрок кликнул прямо перед открытием; `null` для сущностей и открытий сервером.
 `packet()` — настоящий объект игры: `if (event.packet() instanceof ServerboundMovePlayerPacket move) ...`.
 С сетевого потока игру не трогать: `this.platform().execute(() -> ...)`.
 
@@ -78,24 +89,61 @@ ClickGUI, бинды, сохранение включённости и наст�
 - `this.info("...")` — строка в чат (только клиенту). `this.client()` — менеджеры (друзья: `client().relations().isFriend(name)`).
 - **3D** (в `Render3D`): `renderer.box(minX, minY, minZ, maxX, maxY, maxZ, strokeArgb, strokeWidth, fillArgb, throughWalls)`,
   `renderer.line(x1, y1, z1, x2, y2, z2, argb, width, throughWalls)`, положение камеры — `cameraX()`…
+- **Много боксов** (Xray, Search, хранилища — больше нескольких сотен): `BoxBatch` в поле модуля, перестраивать
+  (`clear()`, `add(...)`) только когда набор поменялся, каждый кадр — `renderer.boxes(batch)`. Геометрия лежит на GPU:
+  10 000 боксов — 5 мкс CPU на кадр. Поштучный `box` — для того, что движется каждый кадр (сущности).
 - **2D** (в `Render2D`): `roundedRect`, `roundedOutline`, `shadow`, `gradient`, `text(Type…)`. Цвета и размеры — только из
   дизайн-системы: `client().themes().current().accent()`, `Metrics.Type.LABEL.draw(...)`, см. `docs/design-system.md`.
 - Сырой OpenGL запрещён: только эти хелперы (бэкенд игры может быть Vulkan).
 
+## Файлы, секреты, сеть
+
+Только через ядро; `java.io`/`java.nio.file`, `HttpClient`, `System.getenv` в модулях запрещены.
+
+- **Файлы** — `this.storage()`: папка модуля `.minecraft/wisteria/data/<id>/`. `readText`/`writeText`, `readBytes`/`writeBytes`,
+  `readJson`/`writeJson`, `list()`, `delete`, `file("db/x.sqlite")` — путь для библиотек, открывающих файл сами.
+  Имена — относительные (`cache/r.0.0.json`), `..` и абсолютные пути отклоняются. Запись атомарная.
+  Крупное — не на клиентском потоке. `export(name, bytes)` кладёт выгрузку для пользователя в `.minecraft/wisteria/exports/`.
+- **Секреты** — `this.secret("TELEGRAM_BOT_TOKEN")` → `Optional<Secret>` из `.minecraft/wisteria/.env` (`ИМЯ=значение`).
+  Значение модулю не выдаётся: `Secret` печатается как `****`, подставляется в запрос сам. Всё, что клиент пишет в чат
+  и лог, чистится от значений секретов.
+- **Сеть** — `this.send(Net.Request.post("https://api.telegram.org/bot{token}/sendMessage").secret("token", token).json(body))`
+  → `CompletableFuture<Net.Response>`, завершается **не на клиентском потоке**: обратно — `thenAcceptAsync(r -> ..., this.platform()::execute)`.
+  Только HTTPS и только хосты, которые пользователь разрешил командой `.net allow <хост>` (по умолчанию — никакие).
+  Таймаут 10 с, 2 повтора при сетевой ошибке, 5xx и 429; после 3 провалов подряд сеть модуля выключается на 5 минут
+  с сообщением в чат.
+
+**Исключения** — кому что можно (`io.Permission`, меняется только задачей на ядро вместе с этим списком).
+Остальным модулям вызов бросает `SecurityException`.
+
+| Разрешение | Кому | Что |
+|---|---|---|
+| `NET` | `notifier` | исходящие HTTPS-запросы на разрешённые хосты |
+| `SECRETS` | `notifier` | чтение `.env` |
+| `WRITE_OUTSIDE` | `waypoints` | `storage().writeOutside(path, bytes)` — экспорт вейпоинтов в выбранный файл, только по явному действию пользователя |
+
+## Логика отдельно от игры
+
+Решение — «ломать ли этот блок», «какой слот взять», «что подсветить» — пишется **чистой функцией над простыми
+данными**: числа, строки, записи, свои enum; без `mc()`, `player()`, `level()` и объектов игры. Модуль только
+собирает данные из игры, вызывает функцию и применяет результат. Так логика проверяется модульным тестом,
+где `player()` — `null`. Пример — `TemplateModule.ring(...)` и `decisionLogicIsTestedWithoutTheGame`.
+
 ## Миксины
 
-Класс в `dev.wisteria.mixin.<имя>`, строка в `wisteria.mixins.json`. Миксин ничего не решает сам, а спрашивает модуль:
+Класс в `dev.wisteria.mixin.<имя>`, строка в `wisteria.mixins.json`. Миксин ничего не решает сам, а спрашивает модуль —
+по классу, не по строке:
 
 ```java
-Module nuker = Wisteria.client().modules().get("nuker");
-if (nuker != null && nuker.isEnabled()) { ... }
+Nuker nuker = Wisteria.client().modules().get(Nuker.class);   // null, если не зарегистрирован
+if (nuker != null && nuker.isEnabled()) { ... }                // или modules().isEnabled(Nuker.class)
 ```
 
 ## Правила
 
 - Перенесённая логика: в javadoc класса — откуда и под какой лицензией («Adapted from Wurst7 (GPL-3.0), …»). Не копировать вслепую.
 - Обработчик, который бросил исключение, выключает свой модуль и пишет об этом в чат. Игра не падает, но это баг.
-- Никаких токенов, сетевых запросов наружу, записи файлов вне `.minecraft/wisteria/`.
+- Файлы, секреты и сеть — только как выше; исключения — только по таблице.
 
 ## Тесты
 
@@ -125,4 +173,4 @@ if (nuker != null && nuker.isEnabled()) { ... }
 ## Стабильность
 
 Всё перечисленное здесь — замороженный API: `Module` и его хелперы, классы настроек, `Events`, `Renderer2D`/`Renderer3D`,
-`GameTestKit`, `ModuleGameTest`, `FakePlatform`. Изменения в них — только отдельной задачей на ядро, с обновлением этого файла.
+`BoxBatch`, `Storage`, `Secret`, `Net`, `Permission`, `GameTestKit`, `ModuleGameTest`, `FakePlatform`. Изменения в них — только отдельной задачей на ядро, с обновлением этого файла.

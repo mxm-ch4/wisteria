@@ -65,11 +65,20 @@ public final class TemplateModule extends Module {
 			return;
 		}
 
-		double x = player.getX();
-		double y = player.getY();
-		double z = player.getZ();
-		double r = this.range.get();
-		event.renderer().box(x - r, y, z - r, x + r, y + 0.05, z + r, this.color.get(), 1.5F, 0, true);
+		// Gather plain data from the game, let a pure function decide, apply the result.
+		double[] box = ring(player.getX(), player.getY(), player.getZ(), this.range.get(), this.mode.get());
+		event.renderer().box(box[0], box[1], box[2], box[3], box[4], box[5], this.color.get(), 1.5F, 0, true);
+	}
+
+	/**
+	 * The decision, as a pure function: numbers in, numbers out, no game calls. The unit test checks it
+	 * directly, without a world (see docs/module-api.md, "Логика отдельно от игры").
+	 *
+	 * @return minX, minY, minZ, maxX, maxY, maxZ of the ring drawn around the player
+	 */
+	static double[] ring(double x, double y, double z, double range, Mode mode) {
+		double r = mode == Mode.FIRM ? range : range * 0.75;
+		return new double[] {x - r, y, z - r, x + r, y + 0.05, z + r};
 	}
 
 	/** Ticks since it was switched on: for the unit test. */

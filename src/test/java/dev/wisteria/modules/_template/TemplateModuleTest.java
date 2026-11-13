@@ -65,4 +65,14 @@ class TemplateModuleTest {
 		assertEquals(TemplateModule.Mode.FIRM, restored.mode());
 		assertTrue(restored.aggressive());
 	}
+
+	@Test
+	void decisionLogicIsTestedWithoutTheGame() {
+		// player() is null here, so the module's own logic lives in pure functions that take plain data.
+		double[] gentle = TemplateModule.ring(10.0, 64.0, -5.0, 4.0, TemplateModule.Mode.GENTLE);
+		double[] firm = TemplateModule.ring(10.0, 64.0, -5.0, 4.0, TemplateModule.Mode.FIRM);
+		assertEquals(7.0, gentle[0]);
+		assertEquals(6.0, firm[0]);
+		assertEquals(64.05, firm[4], 1e-9);
+	}
 }

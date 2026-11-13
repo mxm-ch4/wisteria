@@ -218,6 +218,17 @@ public final class GamePlatform implements Platform {
 		.build();
 
 	@Override
+	public void writeNetworkAudit() {
+		try {
+			java.nio.file.Path file = SessionAudit.write(this.gameDirectory().resolve(dev.wisteria.Wisteria.ID));
+			this.chat.print("Network audit written: " + file.getFileName());
+			net.minecraft.util.Util.getPlatform().openPath(file.getParent());
+		} catch (java.io.IOException e) {
+			this.chat.print("Could not write the network audit: " + e.getMessage());
+		}
+	}
+
+	@Override
 	public String clientVersion() {
 		return net.fabricmc.loader.api.FabricLoader.getInstance().getModContainer(dev.wisteria.Wisteria.ID)
 			.map(container -> container.getMetadata().getVersion().getFriendlyString()).orElse("dev");

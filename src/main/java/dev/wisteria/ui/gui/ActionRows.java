@@ -275,4 +275,25 @@ final class ActionRows {
 			this.input.setFocused(false);
 		}
 	}
+
+	/** A label and a live value; nothing to click. */
+	static final class Info extends SettingRow {
+		private final dev.wisteria.setting.InfoSetting setting;
+
+		Info(dev.wisteria.setting.InfoSetting setting) {
+			super(setting.name(), setting.description());
+			this.setting = setting;
+		}
+
+		@Override
+		float height() {
+			return HEIGHT;
+		}
+
+		@Override
+		void render(Ui ui) {
+			ui.textInRow(Type.CAPTION, this.label(), this.x, this.y, HEIGHT, ui.theme().textMuted());
+			ui.textRightInRow(Type.MONO, this.setting.format(), this.x + this.width, this.y, HEIGHT, ui.theme().text());
+		}
+	}
 }

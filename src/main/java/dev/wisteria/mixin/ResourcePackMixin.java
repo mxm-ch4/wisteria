@@ -26,7 +26,7 @@ abstract class ResourcePackMixin {
 	// address to whoever hosts the pack. So, unless the profile says otherwise, the pack is declined.
 	@Inject(method = "handleResourcePackPush", at = @At("HEAD"), cancellable = true)
 	private void wisteria$declineWithProxy(ClientboundResourcePackPushPacket packet, CallbackInfo ci) {
-		Client client = Wisteria.client();
+		Client client = Wisteria.clientOrNull();
 		ProxySection section = client != null ? client.modules().get(ProxySection.class) : null;
 		if (section == null || ProxyConnector.route() instanceof ProxyManager.Route.Direct || section.packs() == ProxySection.Packs.ACCEPT) {
 			return;

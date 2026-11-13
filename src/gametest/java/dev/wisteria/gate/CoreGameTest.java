@@ -39,6 +39,10 @@ public final class CoreGameTest implements FabricClientGameTest {
 
 	@Override
 	public void runTest(ClientGameTestContext context) {
+		if (GameTestKit.isAuditPhase()) {
+			return;
+		}
+
 		if (GameTestKit.isRestartPhase()) {
 			return;
 		}

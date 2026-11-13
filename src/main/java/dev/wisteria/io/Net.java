@@ -44,6 +44,7 @@ public final class Net {
 	private final LongSupplier clock;
 	private final Set<String> allowed = ConcurrentHashMap.newKeySet();
 	private final Map<String, Health> health = new ConcurrentHashMap<>();
+	private final java.util.concurrent.atomic.AtomicLong requests = new java.util.concurrent.atomic.AtomicLong();
 	private final List<Runnable> changeListeners = new CopyOnWriteArrayList<>();
 	private final ExecutorService executor = Executors.newFixedThreadPool(2, runnable -> {
 		Thread thread = new Thread(runnable, "Wisteria Net");
@@ -193,7 +194,13 @@ public final class Net {
 		return result;
 	}
 
+	/** Requests that actually left the machine since the game started (retries included). */
+	public long requestsMade() {
+		return this.requests.get();
+	}
+
 	private void attempt(String moduleId, Request request, HttpRequest built, int attempt, CompletableFuture<Response> result) {
+		this.requests.incrementAndGet();
 		this.http.sendAsync(built, HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8)).whenComplete((response, error) -> {
 			boolean retryable = error != null || response.statusCode() == 429 || response.statusCode() >= 500;
 			if (retryable && attempt < request.retries) {

@@ -35,7 +35,7 @@ public final class ProxyConnector {
 
 	/** The route for the next connection, or Direct when the client is not running yet. */
 	public static ProxyManager.Route route() {
-		Client client = Wisteria.client();
+		Client client = Wisteria.clientOrNull();
 		return client == null ? new ProxyManager.Route.Direct() : client.proxies().route();
 	}
 
@@ -92,7 +92,7 @@ public final class ProxyConnector {
 	}
 
 	private static void notifyBlocked(String reason) {
-		Client client = Wisteria.client();
+		Client client = Wisteria.clientOrNull();
 		if (client != null) {
 			client.platform().execute(() -> client.hud().notify("Connection blocked", reason, dev.wisteria.hud.Toasts.Kind.WARNING));
 		}

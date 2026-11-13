@@ -13,6 +13,13 @@ public interface Platform {
 	/** "OpenGL" or "Vulkan". */
 	String graphicsBackend();
 
+	/**
+	 * Writes the record of everything sent to servers this session to .minecraft/wisteria/audit/ and opens the folder.
+	 * Does nothing where there is no game (tests).
+	 */
+	default void writeNetworkAudit() {
+	}
+
 	/** The client's own version, e.g. "0.1.0". */
 	default String clientVersion() {
 		return "dev";

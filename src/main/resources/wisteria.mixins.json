@@ -3,6 +3,7 @@
 	"package": "dev.wisteria.mixin",
 	"compatibilityLevel": "JAVA_25",
 	"client": [
+		"ChatSendGuardMixin",
 		"ClientCommonPacketListenerMixin",
 		"ClientLevelMixin",
 		"ClientPacketListenerMixin",

@@ -34,6 +34,19 @@ public final class GameTestKit {
 		}
 	}
 
+	/**
+	 * The gate's last launch: the same client with Wisteria switched off (-Dwisteria.disabled=true), for the network
+	 * audit to compare against. Every other test skips it.
+	 */
+	public static boolean isAuditPhase() {
+		return "audit".equals(System.getenv("WISTERIA_GATE_PHASE"));
+	}
+
+	/** Where the gate's frames and files go: the game directory's gate folder. */
+	public static java.nio.file.Path gateDirectory(ClientGameTestContext context) {
+		return context.computeOnClient(minecraft -> minecraft.gameDirectory.toPath().resolve("gate"));
+	}
+
 	public static TestSingleplayerContext newWorld(ClientGameTestContext context) {
 		TestSingleplayerContext world = context.worldBuilder().create();
 		GateHooks.waitForWorld(world);

@@ -13,6 +13,10 @@ import net.fabricmc.fabric.api.client.gametest.v1.context.TestSingleplayerContex
 public abstract class ModuleGameTest implements FabricClientGameTest {
 	@Override
 	public final void runTest(ClientGameTestContext context) {
+		if (GameTestKit.isAuditPhase()) {
+			return;
+		}
+
 		// The second launch of tools/gate.sh only checks persistence; module tests run in the first.
 		if (GameTestKit.isRestartPhase()) {
 			return;

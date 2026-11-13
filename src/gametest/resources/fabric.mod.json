@@ -16,9 +16,11 @@
 			"dev.wisteria.gate.modules.EspGameTest",
 			"dev.wisteria.gate.ProxyGameTest",
 			"dev.wisteria.gate.MenuGameTest",
+			"dev.wisteria.gate.NetworkAuditGameTest",
 			"dev.wisteria.gate.modules.FullBrightGameTest"
 		]
 	},
+	"mixins": ["wisteria-gate.mixins.json"],
 	"depends": {
 		"wisteria": "*",
 		"fabric-api": "*"

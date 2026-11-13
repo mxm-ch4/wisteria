@@ -57,6 +57,13 @@ test {
 	useJUnitPlatform()
 }
 
+// The gate's audit launch runs the client with Wisteria switched off (tools/gate.sh sets WISTERIA_DISABLED).
+tasks.matching { it.name == 'runClientGameTest' }.configureEach {
+	if (System.getenv('WISTERIA_DISABLED') != null) {
+		jvmArgs '-Dwisteria.disabled=true'
+	}
+}
+
 processResources {
 	def version = project.version
 	inputs.property "version", version

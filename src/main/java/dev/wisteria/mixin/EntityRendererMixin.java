@@ -22,7 +22,7 @@ abstract class EntityRendererMixin {
 	@Inject(method = "extractRenderState", at = @At("TAIL"))
 	private void wisteria$chams(Entity entity, EntityRenderState state, float partialTicks, CallbackInfo ci) {
 		state.setData(ChamsRenderTypes.COLOR, 0);
-		Client client = Wisteria.client();
+		Client client = Wisteria.clientOrNull();
 		EntityEsp esp = client != null ? client.modules().get(EntityEsp.class) : null;
 		if (esp == null || !esp.isEnabled()) {
 			return;

@@ -1,0 +1,11 @@
+{
+	"required": true,
+	"package": "dev.wisteria.gate.mixin",
+	"compatibilityLevel": "JAVA_25",
+	"mixins": [
+		"ServerReceiveMixin"
+	],
+	"injectors": {
+		"defaultRequire": 1
+	}
+}

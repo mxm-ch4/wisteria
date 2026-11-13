@@ -28,6 +28,10 @@ public final class MenuGameTest implements FabricClientGameTest {
 
 	@Override
 	public void runTest(ClientGameTestContext context) {
+		if (GameTestKit.isAuditPhase()) {
+			return;
+		}
+
 		if (GameTestKit.isRestartPhase()) {
 			context.setScreen(TitleScreen::new);
 			context.waitTicks(5);

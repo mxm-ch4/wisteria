@@ -108,6 +108,11 @@ public final class ConfigManager {
 				}
 
 				this.client.themes().load(string(clientJson, "theme"), accent);
+				JsonObject privacy = object(clientJson, "privacy");
+				if (privacy != null) {
+					this.client.privacy().load(privacy);
+				}
+
 				JsonElement proxies = clientJson.get("proxies");
 				if (proxies != null && proxies.isJsonArray()) {
 					this.client.proxies().load(proxies.getAsJsonArray());
@@ -173,6 +178,7 @@ public final class ConfigManager {
 			clientJson.addProperty("accent", accent != null ? ColorSetting.toHex(accent) : null);
 			clientJson.add("gui", this.client.gui().toJson());
 			clientJson.add("proxies", this.client.proxies().toJson());
+			clientJson.add("privacy", this.client.privacy().toJson());
 			clientJson.add("hud", this.client.hud().toJson());
 			JsonObject net = new JsonObject();
 			net.add("allowedHosts", array(this.client.net().allowedHosts()));

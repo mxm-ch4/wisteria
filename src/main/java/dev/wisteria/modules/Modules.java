@@ -49,6 +49,7 @@ public final class Modules {
 			new dev.wisteria.modules.client.FriendsSection(),
 			new dev.wisteria.modules.client.NetworkSection(),
 			new dev.wisteria.modules.client.ChatSection(),
+			new dev.wisteria.modules.client.PrivacySection(),
 			new dev.wisteria.modules.client.InterfaceSection(),
 			new dev.wisteria.modules.client.ToolsSection()
 		);

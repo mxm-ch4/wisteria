@@ -51,7 +51,7 @@ public final class Secrets {
 	public Optional<Secret> get(String moduleId, String name, String profile) {
 		Permission.SECRETS.check(moduleId);
 		String key = keyFor(name, profile);
-		String value = this.values().get(key);
+		String value = this.map().get(key);
 		return value == null || value.isEmpty() ? Optional.empty() : Optional.of(new Secret(key, value));
 	}
 
@@ -65,7 +65,7 @@ public final class Secrets {
 	 * {@code Module.secret(...)}, which needs the SECRETS permission.
 	 */
 	public Optional<String> forCore(String name) {
-		String value = this.values().get(name);
+		String value = this.map().get(name);
 		return value == null || value.isEmpty() ? Optional.empty() : Optional.of(value);
 	}
 
@@ -117,7 +117,7 @@ public final class Secrets {
 		this.loaded = true;
 	}
 
-	private Map<String, String> values() {
+	private Map<String, String> map() {
 		if (!this.loaded) {
 			this.reload();
 		}
@@ -152,7 +152,7 @@ public final class Secrets {
 	/** {@code text} with every secret value replaced by {@code ****}. */
 	public String redact(String text) {
 		String result = text;
-		for (String value : this.values().values()) {
+		for (String value : this.map().values()) {
 			if (value.length() >= MIN_REDACT_LENGTH && result.contains(value)) {
 				result = result.replace(value, MASK);
 			}
@@ -172,9 +172,14 @@ public final class Secrets {
 		return copy;
 	}
 
+	/** Every value, for the chat guard to look for; never printed. */
+	public List<String> values() {
+		return List.copyOf(this.map().values());
+	}
+
 	/** Names only, for {@code .net} status lines. */
 	public List<String> names() {
-		return List.copyOf(this.values().keySet());
+		return List.copyOf(this.map().keySet());
 	}
 
 	private static final class RedactedException extends Exception {

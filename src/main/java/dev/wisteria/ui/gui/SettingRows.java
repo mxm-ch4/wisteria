@@ -43,6 +43,10 @@ final class SettingRows {
 			return new ActionRows.Secret(password);
 		}
 
+		if (setting instanceof dev.wisteria.setting.InfoSetting info) {
+			return new ActionRows.Info(info);
+		}
+
 		if (setting instanceof dev.wisteria.setting.ChoiceSetting choice) {
 			return new Dropdown(choice);
 		}

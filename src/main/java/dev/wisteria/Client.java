@@ -38,6 +38,7 @@ public final class Client {
 	private final Net net;
 	private final dev.wisteria.hud.HudManager hud;
 	private final dev.wisteria.proxy.ProxyManager proxies;
+	private final dev.wisteria.privacy.Privacy privacy;
 
 	public Client(Platform platform) {
 		this(platform, Modules.create());
@@ -56,6 +57,11 @@ public final class Client {
 		modules.forEach(this.modules::register);
 		this.hud = new dev.wisteria.hud.HudManager(this);
 		this.proxies = new dev.wisteria.proxy.ProxyManager(this);
+		this.privacy = new dev.wisteria.privacy.Privacy(this);
+		dev.wisteria.modules.client.PrivacySection privacySection = this.modules.get(dev.wisteria.modules.client.PrivacySection.class);
+		if (privacySection != null) {
+			this.privacy.settings(privacySection::brand, privacySection::hideChannels, privacySection::guard);
+		}
 		dev.wisteria.modules.client.ProxySection proxySection = this.modules.get(dev.wisteria.modules.client.ProxySection.class);
 		if (proxySection != null) {
 			this.proxies.routeFrom(proxySection::route);
@@ -90,6 +96,7 @@ public final class Client {
 		this.gui.onChange(this.config::markDirty);
 		this.hud.onChange(this.config::markDirty);
 		this.proxies.onChange(this.config::markDirty);
+		this.privacy.onChange(this.config::markDirty);
 		this.config.onProfile(profile -> {
 			dev.wisteria.modules.client.ProfilesSection section = this.modules.get(dev.wisteria.modules.client.ProfilesSection.class);
 			if (section != null) {
@@ -250,6 +257,11 @@ public final class Client {
 	 */
 	public Storage storage(Module module) {
 		return new Storage(this.root.resolve("profiles").resolve(this.config.profile()), module.id());
+	}
+
+	/** Brand, mod channels and the chat guard. */
+	public dev.wisteria.privacy.Privacy privacy() {
+		return this.privacy;
 	}
 
 	/** Proxies and the route the game's connections take. */

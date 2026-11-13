@@ -16,6 +16,7 @@ args=(runClientGameTest --console=plain)
 [ -n "$backend" ] && args+=("-Pbackend=$backend")
 status=0
 : > "$out/$run.restart.log"
+: > "$out/$run.audit.log"
 xvfb-run -a -s "-screen 0 1920x1080x24" ./gradlew "${args[@]}" > "$out/$run.log" 2>&1 || status=$?
 # Second launch over the same game directory: did the settings from the first one survive a real restart?
 if [ $status -eq 0 ]; then
@@ -25,10 +26,18 @@ if [ $status -eq 0 ]; then
 		status=4
 	fi
 fi
+# Third launch: the same client with Wisteria switched off, for the network audit to compare against.
+if [ $status -eq 0 ]; then
+	WISTERIA_GATE_PHASE=audit WISTERIA_DISABLED=1 xvfb-run -a -s "-screen 0 1920x1080x24" ./gradlew "${args[@]}" > "$out/$run.audit.log" 2>&1 || status=$?
+	if [ $status -eq 0 ] && ! grep -q "audit check passed" "$out/$run.audit.log"; then
+		echo "gate.sh: the network audit did not run" >&2
+		status=5
+	fi
+fi
 mkdir -p "$out/$run"
-rm -f "$out/$run"/*.png
-cp build/run/clientGameTest/gate/*.png "$out/$run/" 2>/dev/null || true
-cat "$out/$run.log" "$out/$run.restart.log" 2>/dev/null | grep -E "WisteriaGate|Using graphics backend|Gate failed|BUILD" | sed -E 's/^\[[0-9:]+\] \[[^]]+\] //' || true
+rm -f "$out/$run"/*.png "$out/$run"/*.txt
+cp build/run/clientGameTest/gate/*.png build/run/clientGameTest/gate/*.txt "$out/$run/" 2>/dev/null || true
+cat "$out/$run.log" "$out/$run.restart.log" "$out/$run.audit.log" 2>/dev/null | grep -E "WisteriaGate|Using graphics backend|Gate failed|BUILD" | sed -E 's/^\[[0-9:]+\] \[[^]]+\] //' || true
 # The game silently falls back to the other backend if the requested one cannot start: that is not a pass.
 if [ $status -eq 0 ] && [ -n "$backend" ]; then
 	wanted=$([ "$backend" = VULKAN ] && echo Vulkan || echo OpenGL)

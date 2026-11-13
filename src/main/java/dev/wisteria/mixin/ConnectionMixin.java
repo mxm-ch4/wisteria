@@ -25,9 +25,33 @@ abstract class ConnectionMixin {
 	)
 	private void wisteria$send(Packet<?> packet, ChannelFutureListener listener, boolean flush, CallbackInfo ci) {
 		GamePlatform platform = GamePlatform.instance();
-		if (platform != null && this.getReceiving() == PacketFlow.CLIENTBOUND && platform.gamePackets().dispatchSend(packet)) {
-			ci.cancel();
+		if (platform == null || this.getReceiving() != PacketFlow.CLIENTBOUND) {
+			return;
 		}
+
+		// What the server learns about the client: the brand it is told, and no mod channels or mod data.
+		dev.wisteria.Client client = dev.wisteria.Wisteria.clientOrNull();
+		if (client != null && packet instanceof net.minecraft.network.protocol.common.ServerboundCustomPayloadPacket custom) {
+			if (custom.payload() instanceof net.minecraft.network.protocol.common.custom.BrandPayload brand) {
+				String wanted = client.privacy().brand();
+				if (!wanted.equals(brand.brand())) {
+					ci.cancel();
+					((net.minecraft.network.Connection)(Object)this).send(new net.minecraft.network.protocol.common.ServerboundCustomPayloadPacket(
+						new net.minecraft.network.protocol.common.custom.BrandPayload(wanted)), listener, flush);
+					return;
+				}
+			} else if (client.privacy().hideChannels()) {
+				ci.cancel();
+				return;
+			}
+		}
+
+		if (platform.gamePackets().dispatchSend(packet)) {
+			ci.cancel();
+			return;
+		}
+
+		dev.wisteria.platform.game.SessionAudit.record(packet);
 	}
 
 	@Inject(

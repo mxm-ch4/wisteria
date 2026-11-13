@@ -37,6 +37,14 @@ public final class Wisteria {
 	}
 
 	/**
+	 * The running client, or null before it has started (or when it is switched off): for hooks in the game, which can
+	 * run before the client exists.
+	 */
+	public static @org.jspecify.annotations.Nullable Client clientOrNull() {
+		return client;
+	}
+
+	/**
 	 * Posts an event on the client's bus; does nothing before the client has started. For hooks in the game
 	 * (mixins, platform code) that fire events.
 	 *

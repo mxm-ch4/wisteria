@@ -42,6 +42,10 @@ public final class GateTest implements FabricClientGameTest {
 
 	@Override
 	public void runTest(ClientGameTestContext context) {
+		if (GameTestKit.isAuditPhase()) {
+			return;
+		}
+
 		Platform platform = Wisteria.platform();
 		LOG.info("gate: Minecraft {} on {}", platform.minecraftVersion(), platform.graphicsBackend());
 		if ("restart".equals(System.getenv("WISTERIA_GATE_PHASE"))) {

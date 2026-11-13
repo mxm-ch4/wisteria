@@ -16,6 +16,10 @@ import net.fabricmc.fabric.api.client.gametest.v1.context.ClientGameTestContext;
 public final class TextQualityGameTest implements FabricClientGameTest {
 	@Override
 	public void runTest(ClientGameTestContext context) {
+		if (GameTestKit.isAuditPhase()) {
+			return;
+		}
+
 		if (GameTestKit.isRestartPhase()) {
 			return;
 		}

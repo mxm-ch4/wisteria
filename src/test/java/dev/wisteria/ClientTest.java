@@ -65,7 +65,7 @@ class ClientTest {
 	@Test
 	void theFirstModulesAreRegistered() {
 		assertEquals(List.of("fullbright", "esp", "clickgui", "watermark", "arraylist", "coordinates", "direction", "fps", "tps",
-			"target", "potions", "notifications", "keybinds", "proxystatus", "hudeditor", "proxy", "profiles", "friends", "network", "chat",
+			"target", "potions", "notifications", "keybinds", "proxystatus", "hudeditor", "proxy", "profiles", "friends", "network", "chat", "privacy",
 			"interface", "tools"), this.client.modules().all().stream().map(Module::id).toList());
 		assertEquals(2, this.client.modules().in(Category.RENDER).size());
 		assertEquals(12, this.client.modules().in(Category.HUD).size());

@@ -36,6 +36,10 @@ public final class HudGameTest implements FabricClientGameTest {
 
 	@Override
 	public void runTest(ClientGameTestContext context) {
+		if (GameTestKit.isAuditPhase()) {
+			return;
+		}
+
 		Client client = Wisteria.client();
 		if (GameTestKit.isRestartPhase()) {
 			context.runOnClient(minecraft -> {

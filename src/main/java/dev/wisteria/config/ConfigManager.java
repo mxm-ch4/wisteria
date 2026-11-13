@@ -97,6 +97,11 @@ public final class ConfigManager {
 				}
 
 				this.client.themes().load(string(clientJson, "theme"), accent);
+				JsonObject hud = object(clientJson, "hud");
+				if (hud != null) {
+					this.client.hud().load(hud);
+				}
+
 				JsonObject net = object(clientJson, "net");
 				if (net != null) {
 					this.client.net().load(strings(net, "allowedHosts"));
@@ -151,6 +156,7 @@ public final class ConfigManager {
 			Integer accent = this.client.themes().customAccent();
 			clientJson.addProperty("accent", accent != null ? ColorSetting.toHex(accent) : null);
 			clientJson.add("gui", this.client.gui().toJson());
+			clientJson.add("hud", this.client.hud().toJson());
 			JsonObject net = new JsonObject();
 			net.add("allowedHosts", array(this.client.net().allowedHosts()));
 			clientJson.add("net", net);

@@ -22,7 +22,7 @@ import org.junit.jupiter.api.io.TempDir;
 
 /**
  * Drives the ClickGUI the way a player would: frames, clicks, drags and keys. Panels start at (8, 32) and
- * are 118 wide with a 22 px header; module rows are 17 px. Render lists FullBright, ESP, Watermark.
+ * are 118 wide with a 22 px header; module rows are 17 px. Render lists FullBright and ESP; Watermark is in the HUD panel.
  */
 class ClickGuiTest {
 	private static final float RENDER_X = 8.0F;
@@ -89,8 +89,8 @@ class ClickGuiTest {
 
 	@Test
 	void showsEveryCategoryThatHasModules() {
-		assertEquals(2, this.screen.panels().size());
-		assertTrue(this.renderer.drew("Render") && this.renderer.drew("Misc"));
+		assertEquals(3, this.screen.panels().size());
+		assertTrue(this.renderer.drew("Render") && this.renderer.drew("Misc") && this.renderer.drew("HUD"));
 		assertTrue(this.renderer.drew("FullBright") && this.renderer.drew("ESP") && this.renderer.drew("Watermark") && this.renderer.drew("ClickGUI"));
 		assertFalse(this.renderer.drew("Combat"), "empty categories get no panel");
 	}
@@ -162,16 +162,16 @@ class ClickGuiTest {
 
 	@Test
 	void typingSearchesAndFiltersModules() {
-		this.screen.charTyped("w");
-		this.screen.charTyped("a");
+		this.screen.charTyped("f");
+		this.screen.charTyped("u");
 		this.frame();
-		assertEquals("wa", this.screen.search().text());
-		assertTrue(this.renderer.drew("Watermark"));
-		assertFalse(this.renderer.drew("ESP") || this.renderer.drew("FullBright") || this.renderer.drew("ClickGUI"));
+		assertEquals("fu", this.screen.search().text());
+		assertTrue(this.renderer.drew("FullBright"));
+		assertFalse(this.renderer.drew("ESP") || this.renderer.drew("Watermark") || this.renderer.drew("ClickGUI"));
 
 		// With one match, it is the first row of its panel.
 		this.click(RENDER_X + 40.0F, row(0), MouseButton.LEFT);
-		assertTrue(this.module("watermark").isEnabled());
+		assertTrue(this.module("fullbright").isEnabled());
 
 		this.screen.search().setFocused(true);
 		this.screen.keyDown(Key.BACKSPACE, false, true, false);

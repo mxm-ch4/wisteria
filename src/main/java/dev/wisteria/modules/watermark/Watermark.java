@@ -1,60 +1,82 @@
 package dev.wisteria.modules.watermark;
 
 import dev.wisteria.Wisteria;
-import dev.wisteria.render.Renderer2D;
-import dev.wisteria.event.Events;
-import dev.wisteria.module.Category;
-import dev.wisteria.module.Module;
+import dev.wisteria.hud.Anchor;
+import dev.wisteria.hud.HudContext;
+import dev.wisteria.hud.HudElement;
 import dev.wisteria.setting.BoolSetting;
-import dev.wisteria.setting.ColorSetting;
-import dev.wisteria.setting.EnumSetting;
-import dev.wisteria.setting.FloatSetting;
 import dev.wisteria.setting.StringSetting;
+import dev.wisteria.ui.BrandMark;
 import dev.wisteria.ui.Metrics.Type;
+import java.util.ArrayList;
+import java.util.List;
+import net.minecraft.client.multiplayer.PlayerInfo;
+import net.minecraft.client.player.LocalPlayer;
 
-/**
- * The client's name in a corner of the screen. A plain stand-in until the HUD stage brings draggable
- * elements; it exists now so the core has something 2D to switch on and configure.
- */
-public final class Watermark extends Module {
-	public enum Corner {
-		TOP_LEFT, TOP_RIGHT, BOTTOM_LEFT, BOTTOM_RIGHT
-	}
+/** The client's mark and name, with frames per second and ping. */
+public final class Watermark extends HudElement {
+	private static final float MARK_STEP = 3.2F;
 
 	private final StringSetting text = this.add(new StringSetting("Text", "What to show", Wisteria.NAME, 48));
-	private final EnumSetting<Corner> corner = this.add(new EnumSetting<>("Corner", "Where on the screen", Corner.TOP_LEFT));
-	private final ColorSetting color = this.add(new ColorSetting("Color", "Text colour", 0xFFB79CFF));
-	private final FloatSetting scale = this.add(new FloatSetting("Scale", "Text size", 1.0F, 0.5F, 4.0F, 0.25F));
-	private final BoolSetting background = this.add(new BoolSetting("Background", "Rounded panel behind the text", true));
-	private final BoolSetting showVersion = this.add(new BoolSetting("Show Version", "Append the Minecraft version", true));
+	private final BoolSetting showFps = this.add(new BoolSetting("Show FPS", "Frames per second", true));
+	private final BoolSetting showPing = this.add(new BoolSetting("Show Ping", "Round trip to the server in milliseconds", true));
+	private final BoolSetting showVersion = this.add(new BoolSetting("Show Version", "Append the Minecraft version", false));
+	private String details = "";
 
 	public Watermark() {
-		super("Watermark", "Shows the client name on screen", Category.RENDER);
-		this.on(Events.Render2D.class, this::render);
+		super("Watermark", "The client's mark, name, FPS and ping", Anchor.TOP_LEFT, 6.0F, 6.0F);
 	}
 
-	private void render(Events.Render2D event) {
-		Renderer2D renderer = event.renderer();
-		String label = this.text.get();
-		if (this.showVersion.get()) {
-			label = label + "  " + this.client().platform().minecraftVersion();
+	/** "143 fps · 23 ms"; pure, for the unit test. Parts that are off or unknown (ping -1) are left out. */
+	public static String details(int fps, int ping, boolean showFps, boolean showPing, String version) {
+		List<String> parts = new ArrayList<>();
+		if (showFps) {
+			parts.add(fps + " fps");
 		}
 
-		float size = Type.LABEL.size() * this.scale.get();
-		float padding = this.background.get() ? 5.0F * this.scale.get() : 0.0F;
-		float width = renderer.textWidth(Type.LABEL.face(), size, label) + padding * 2.0F;
-		float height = renderer.lineHeight(Type.LABEL.face(), size) + padding * 2.0F;
-		float margin = 6.0F;
-		Corner where = this.corner.get();
-		boolean right = where == Corner.TOP_RIGHT || where == Corner.BOTTOM_RIGHT;
-		boolean bottom = where == Corner.BOTTOM_LEFT || where == Corner.BOTTOM_RIGHT;
-		float x = right ? renderer.width() - width - margin : margin;
-		float y = bottom ? renderer.height() - height - margin : margin;
-
-		if (this.background.get()) {
-			renderer.roundedRect(x, y, width, height, Math.min(height / 2.0F, 6.0F), 0xD917131F);
+		if (showPing && ping >= 0) {
+			parts.add(ping + " ms");
 		}
 
-		renderer.text(Type.LABEL.face(), size, label, x + padding, y + padding, this.color.get());
+		if (!version.isEmpty()) {
+			parts.add(version);
+		}
+
+		return String.join(" · ", parts);
+	}
+
+	@Override
+	protected float[] measure(HudContext c) {
+		int fps = 0;
+		int ping = -1;
+		LocalPlayer player = this.player();
+		if (player != null) {
+			fps = this.mc().getFps();
+			PlayerInfo info = player.connection.getPlayerInfo(player.getUUID());
+			ping = info != null ? info.getLatency() : -1;
+		} else if (c.preview()) {
+			fps = 144;
+			ping = 23;
+		}
+
+		this.details = details(fps, ping, this.showFps.get(), this.showPing.get(),
+			this.showVersion.get() ? this.client().platform().minecraftVersion() : "");
+		float textWidth = Math.max(c.width(Type.LABEL, this.text.get()), this.details.isEmpty() ? 0.0F : c.width(Type.MONO, this.details));
+		float textHeight = c.line(Type.LABEL) + (this.details.isEmpty() ? 0.0F : c.line(Type.MONO));
+		float height = Math.max(BrandMark.height(MARK_STEP), textHeight) + HudContext.PAD * 2.0F;
+		return new float[] {HudContext.PAD * 2.0F + BrandMark.width(MARK_STEP) + 6.0F + textWidth + HudContext.PAD, height};
+	}
+
+	@Override
+	protected void draw(HudContext c, float width, float height) {
+		c.panel(0.0F, 0.0F, width, height);
+		BrandMark.draw(c.renderer(), HudContext.PAD + 1.0F, (height - BrandMark.height(MARK_STEP)) / 2.0F, MARK_STEP, c.theme(), c.alpha(), null);
+		float x = HudContext.PAD * 2.0F + BrandMark.width(MARK_STEP) + 4.0F;
+		float textHeight = c.line(Type.LABEL) + (this.details.isEmpty() ? 0.0F : c.line(Type.MONO));
+		float y = (height - textHeight) / 2.0F;
+		c.text(Type.LABEL, this.text.get(), x, y, c.theme().text());
+		if (!this.details.isEmpty()) {
+			c.text(Type.MONO, this.details, x, y + c.line(Type.LABEL), c.theme().textMuted());
+		}
 	}
 }

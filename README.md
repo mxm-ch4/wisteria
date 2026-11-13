@@ -7,7 +7,7 @@
   <img alt="Windows only" src="https://img.shields.io/badge/Platform-Windows%20x64-B79CFF?style=flat-square&labelColor=17131F">
   <img alt="Loader: Fabric" src="https://img.shields.io/badge/Loader-Fabric-B79CFF?style=flat-square&labelColor=17131F">
   <img alt="Java 25" src="https://img.shields.io/badge/Java-25-B79CFF?style=flat-square&labelColor=17131F">
-  <img alt="Статус: этап 3 пройден" src="https://img.shields.io/badge/Статус-этап%203%20пройден-8B6CFF?style=flat-square&labelColor=17131F">
+  <img alt="Статус: этап 4 пройден" src="https://img.shields.io/badge/Статус-этап%204%20пройден-8B6CFF?style=flat-square&labelColor=17131F">
   <a href="LICENSE"><img alt="License: GPL-3.0" src="https://img.shields.io/badge/License-GPL--3.0-E9D8FF?style=flat-square&labelColor=17131F"></a>
 </p>
 
@@ -28,8 +28,8 @@
 
 > [!NOTE]
 > Проект на старте. Готовы ядро (модули, настройки, конфиги с профилями, команды в чате) и дизайн-система
-> (темы, свои шрифты, анимации) и ClickGUI. Только Minecraft 26.2 и только Windows. Модулей пока три, и они простые
-> (FullBright, ESP, Watermark); своего HUD ещё нет. Релизов нет — собирать из исходников.
+> (темы, свои шрифты, анимации), ClickGUI и HUD с редактором расположения. Только Minecraft 26.2 и только Windows.
+> Игровых модулей пока два, и они простые (FullBright, ESP). Релизов нет — собирать из исходников.
 
 <p align="center"><img src="assets/divider.svg" width="100%" alt=""></p>
 
@@ -103,7 +103,7 @@ OpenGL ↔ Vulkan, и всё, что написано в обход абстра
 | **1** | Ядро | Модули, настройки, события, конфиги с профилями, чат-команды, друзья/враги — [как устроено](docs/core.md), [как написать модуль](docs/module-api.md) | ✅ |
 | **2** | Дизайн-система | Темы, шрифты, отступы, движение, эффекты одним шейдером и экран-справочник — [как устроено](docs/design-system.md) | ✅ |
 | **3** | GUI | ClickGUI на правый Shift, все контролы настроек, темы, сплэш — [как устроено](docs/gui.md) | ✅ |
-| **4** | HUD | `HudManager`, элементы, редактор расположения | ⏳ следующий |
+| **4** | HUD | 10 элементов, редактор с привязкой к краям и снапом, уведомления — [как устроено](docs/hud.md) | ✅ |
 | **5** | Музыка | Плеер, HUD-виджет, хоткеи, звуки интерфейса | — |
 | **6** | Флагманы | Xray Quality, BaseFinder Intel, база находок | — |
 | **∥** | Fly Lab и Grim Lab | Режимы полёта как пресеты с самоограничением; авто-журнал флагов античита | — |
@@ -208,7 +208,7 @@ tools/gate.sh VULKAN
 
 ```
 src/               код, см. «Архитектура»
-docs/              ядро и команды, API модулей, дизайн-система, GUI, находки этапа 0, Grim-матрица
+docs/              ядро и команды, API модулей, дизайн-система, GUI, HUD, находки этапа 0, Grim-матрица
 tools/gate.sh      шлюз версии без монитора
 tools/brand/       генератор SVG из assets/
 assets/            логотип, баннер, палитра

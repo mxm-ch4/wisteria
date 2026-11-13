@@ -37,6 +37,7 @@ final class Commands {
 		manager.register(new Design());
 		manager.register(new NetCommand());
 		manager.register(new Bench());
+		manager.register(new HudCommand());
 	}
 
 	private static Module module(Client client, String name) {
@@ -560,6 +561,103 @@ final class Commands {
 		@Override
 		public List<String> complete(Client client, List<String> args) {
 			return args.size() == 1 ? List.of("boxes") : args.size() == 2 ? List.of("1000", "10000", "50000") : List.of();
+		}
+	}
+
+	private static final class HudCommand extends Command {
+		HudCommand() {
+			super("hud", List.of(), "/ list / <element> <anchor> [x y] / reset [element]", "Opens the HUD editor or places elements by name");
+		}
+
+		@Override
+		public void run(Client client, List<String> args, Output out) {
+			dev.wisteria.hud.HudManager hud = client.hud();
+			if (args.isEmpty()) {
+				Module editor = client.modules().get("hudeditor");
+				if (editor != null) {
+					client.setEnabled(editor, true);
+				}
+
+				return;
+			}
+
+			String first = args.get(0).toLowerCase(Locale.ROOT);
+			if (first.equals("list") && args.size() == 1) {
+				out.print("HUD: " + hud.elements().stream().map(element -> {
+					dev.wisteria.hud.HudLayout.Placement p = hud.placement(element);
+					return element.id() + (element.isEnabled() ? " (on)" : "") + " " + p.anchor().id() + " " + Math.round(p.dx()) + " " + Math.round(p.dy());
+				}).collect(Collectors.joining(", ")));
+				return;
+			}
+
+			if (first.equals("reset") && args.size() <= 2) {
+				if (args.size() == 1) {
+					hud.resetAll();
+					out.print("Every HUD element back in its default place");
+				} else {
+					dev.wisteria.hud.HudElement element = this.element(client, args.get(1));
+					hud.reset(element);
+					out.print(element.name() + " back in its default place");
+				}
+
+				return;
+			}
+
+			if (args.size() != 2 && args.size() != 4) {
+				throw new CommandException("Usage: " + client.commands().prefix() + "hud " + this.usage());
+			}
+
+			dev.wisteria.hud.HudElement element = this.element(client, args.get(0));
+			dev.wisteria.hud.Anchor anchor = dev.wisteria.hud.Anchor.byId(args.get(1));
+			if (anchor == null) {
+				throw new CommandException("\"" + args.get(1) + "\" is not an anchor; use one of " + anchorIds());
+			}
+
+			float dx = element.defaultPlacement().anchor() == anchor ? element.defaultPlacement().dx() : anchor.fx() == 0.0F ? 6.0F : anchor.fx() == 1.0F ? -6.0F : 0.0F;
+			float dy = element.defaultPlacement().anchor() == anchor ? element.defaultPlacement().dy() : anchor.fy() == 0.0F ? 6.0F : anchor.fy() == 1.0F ? -6.0F : 0.0F;
+			if (args.size() == 4) {
+				try {
+					dx = Float.parseFloat(args.get(2));
+					dy = Float.parseFloat(args.get(3));
+				} catch (NumberFormatException e) {
+					throw new CommandException("x and y must be numbers");
+				}
+			}
+
+			hud.setPlacement(element, new dev.wisteria.hud.HudLayout.Placement(anchor, dx, dy));
+			out.print(element.name() + " pinned " + anchor.id());
+		}
+
+		private dev.wisteria.hud.HudElement element(Client client, String name) {
+			dev.wisteria.hud.HudElement element = client.hud().element(name);
+			if (element == null) {
+				throw new CommandException("No HUD element called \"" + name + "\"");
+			}
+
+			return element;
+		}
+
+		private static String anchorIds() {
+			return java.util.Arrays.stream(dev.wisteria.hud.Anchor.values()).map(dev.wisteria.hud.Anchor::id).collect(Collectors.joining(", "));
+		}
+
+		@Override
+		public List<String> complete(Client client, List<String> args) {
+			if (args.size() == 1) {
+				List<String> candidates = new ArrayList<>(List.of("list", "reset"));
+				client.hud().elements().forEach(element -> candidates.add(element.id()));
+				return candidates;
+			}
+
+			if (args.size() == 2 && args.get(0).equalsIgnoreCase("reset")) {
+				return client.hud().elements().stream().map(Module::id).toList();
+			}
+
+			if (args.size() == 2) {
+				return java.util.Arrays.stream(dev.wisteria.hud.Anchor.values()).map(dev.wisteria.hud.Anchor::id).toList();
+			}
+
+			return List.of();
 		}
 	}
 }

@@ -36,6 +36,7 @@ public final class Client {
 	private final Path root;
 	private final Secrets secrets;
 	private final Net net;
+	private final dev.wisteria.hud.HudManager hud;
 
 	public Client(Platform platform) {
 		this(platform, Modules.create());
@@ -52,6 +53,7 @@ public final class Client {
 		this.config = new ConfigManager(this, this.root);
 
 		modules.forEach(this.modules::register);
+		this.hud = new dev.wisteria.hud.HudManager(this);
 
 		// A handler that throws takes its own module down, not the game.
 		this.bus.onError((subscription, error) -> {
@@ -72,6 +74,7 @@ public final class Client {
 		this.commands.onChange(this.config::markDirty);
 		this.themes.onChange(this.config::markDirty);
 		this.gui.onChange(this.config::markDirty);
+		this.hud.onChange(this.config::markDirty);
 		this.net.onChange(this.config::markDirty);
 		this.net.onSuspend((id, reason) -> platform.execute(() -> {
 			Module module = this.modules.get(id);
@@ -207,6 +210,11 @@ public final class Client {
 	/** The folder of one module; modules use {@code Module.storage()}. */
 	public Storage storage(Module module) {
 		return new Storage(this.root, module.id());
+	}
+
+	/** The HUD: element placements, drawing, notifications. */
+	public dev.wisteria.hud.HudManager hud() {
+		return this.hud;
 	}
 
 	public Secrets secrets() {

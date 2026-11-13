@@ -48,8 +48,14 @@ final class GateProbe implements ClientListener, InputBackend.InputListener, Pac
 	volatile float[] fontWidths = new float[6];
 	private final String version;
 
+	/** The probe of this launch, for tests that want a clean frame (see {@link #hidden}). */
+	static volatile GateProbe current;
+	/** While set, the probe still counts frames but draws nothing over the HUD. */
+	volatile boolean hidden;
+
 	GateProbe(String version) {
 		this.version = version;
+		current = this;
 	}
 
 	@Override
@@ -61,6 +67,10 @@ final class GateProbe implements ClientListener, InputBackend.InputListener, Pac
 	public void onRender2D(Renderer2D renderer, float tickDelta) {
 		this.frames2D.incrementAndGet();
 		this.guiWidth = renderer.width();
+		if (this.hidden) {
+			return;
+		}
+
 		float x = 8.5F;
 		float y = 8.5F;
 		float width = 184.0F;

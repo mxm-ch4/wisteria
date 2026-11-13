@@ -94,7 +94,9 @@ final class ModuleRow {
 		Theme theme = ui.theme();
 		Controls controls = ui.controls();
 		// Toggling the ClickGUI from inside it closes the very screen it is drawn on.
-		String note = this.module instanceof ClickGui ? "switching ClickGUI off closes this screen; covered by the Right Shift test" : null;
+		// Modules whose "on" is an open screen (ClickGUI, HUD Editor) swap this screen out; they have their own tests.
+		String note = this.module instanceof ClickGui ? "switching ClickGUI off closes this screen; covered by the Right Shift test"
+			: !this.module.savesEnabled() ? "opens another screen in place of this one; covered by its own test" : null;
 		Controls.State row = controls.register("module:" + this.path, Controls.Kind.TOGGLE, x + 3.0F, y + 1.0F, width - 6.0F - ARROW, HEIGHT - 2.0F,
 			true, () -> this.module.isEnabled() ? "on" : "off", note);
 		Controls.State arrow = controls.register("expand:" + this.path, Controls.Kind.EXPANDER, x + width - 3.0F - ARROW, y + 1.0F, ARROW, HEIGHT - 2.0F,

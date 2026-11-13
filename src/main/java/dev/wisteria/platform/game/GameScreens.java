@@ -36,9 +36,19 @@ public final class GameScreens implements ScreenBackend {
 		}
 	}
 
+	/**
+	 * True while a client screen is being taken down by the game (Escape, another screen replacing it): its
+	 * onClose often switches its module off, which asks to close the very screen that is already going.
+	 */
+	private static boolean removing;
+
 	@Override
 	public void close() {
 		this.pending = null;
+		if (removing) {
+			return;
+		}
+
 		Minecraft.getInstance().execute(() -> {
 			if (this.platform.currentScreen() instanceof Host) {
 				this.platform.setScreen(null);
@@ -130,7 +140,12 @@ public final class GameScreens implements ScreenBackend {
 		@Override
 		public void removed() {
 			super.removed();
-			this.screen.onClose();
+			removing = true;
+			try {
+				this.screen.onClose();
+			} finally {
+				removing = false;
+			}
 		}
 
 		@Override

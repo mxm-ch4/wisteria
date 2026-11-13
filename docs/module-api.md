@@ -35,7 +35,7 @@ public final class Nuker extends Module {
 ```
 
 Имя — это и подпись в ClickGUI, и команда в чате (`.nuker` переключает, `.nuker range 5` меняет настройку).
-Описание — подсказка в GUI. Категории: `RENDER`, `WORLD`, `PLAYER`, `MOVEMENT`, `COMBAT`, `MISC`.
+Описание — подсказка в GUI. Категории: `RENDER`, `WORLD`, `PLAYER`, `MOVEMENT`, `COMBAT`, `MISC` (и `HUD` — только для `HudElement`).
 ClickGUI, бинды, сохранение включённости и настроек, команды — всё появляется само.
 
 ## Настройки
@@ -97,6 +97,10 @@ ClickGUI, бинды, сохранение включённости и наст�
     `true` — поверх всего, `false` — блоки впереди закрывают. `batch.setThroughWalls(...)` переключает со следующего
     кадра без перестройки — под настройку модуля.
   - Проверить на своей видеокарте: `.bench boxes 10000` — 5 секунд с пакетом вокруг камеры, в чат — средний fps и худший кадр.
+- **HUD-элемент** — не `Render2D`, а наследник `HudElement` (категория HUD): `measure(context)` → `{ширина, высота}` или `null`,
+  если показывать нечего, и `draw(context, w, h)` в точке 0, 0. Место, якорь, масштаб, появление и редактор — от ядра;
+  в редакторе (`context.preview()`) показать образец. Пример — `modules/hud/Fps.java`, подробнее — `docs/hud.md`.
+- Уведомление игроку — `client().hud().notify(заголовок, текст, Toasts.Kind.INFO)`: тост, если элемент Notifications включён.
 - **2D** (в `Render2D`): `roundedRect`, `roundedOutline`, `shadow`, `gradient`, `text(Type…)`. Цвета и размеры — только из
   дизайн-системы: `client().themes().current().accent()`, `Metrics.Type.LABEL.draw(...)`, см. `docs/design-system.md`.
 - Сырой OpenGL запрещён: только эти хелперы (бэкенд игры может быть Vulkan).
@@ -178,4 +182,4 @@ if (nuker != null && nuker.isEnabled()) { ... }                // или modules
 ## Стабильность
 
 Всё перечисленное здесь — замороженный API: `Module` и его хелперы, классы настроек, `Events`, `Renderer2D`/`Renderer3D`,
-`BoxBatch`, `Storage`, `Secret`, `Net`, `Permission`, `GameTestKit`, `ModuleGameTest`, `FakePlatform`. Изменения в них — только отдельной задачей на ядро, с обновлением этого файла.
+`BoxBatch`, `HudElement`, `HudContext`, `Toasts`, `Storage`, `Secret`, `Net`, `Permission`, `GameTestKit`, `ModuleGameTest`, `FakePlatform`. Изменения в них — только отдельной задачей на ядро, с обновлением этого файла.

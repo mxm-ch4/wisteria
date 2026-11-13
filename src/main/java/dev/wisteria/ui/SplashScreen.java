@@ -16,21 +16,6 @@ public final class SplashScreen implements ScreenBackend.ClientScreen {
 	private static final long FADE_NANOS = 350_000_000L;
 	private static final float STEP = 15.0F;
 
-	// The brand mark (see tools/brand/generate.py): row, column offset, scale. Rows hang half a step apart.
-	private static final float[][] CLUSTER = {
-		{0, 0.0F, 0.80F},
-		{1, -0.5F, 1.00F}, {1, 0.5F, 1.00F},
-		{2, -1.0F, 0.86F}, {2, 0.0F, 1.00F}, {2, 1.0F, 0.86F},
-		{3, -0.5F, 1.00F}, {3, 0.5F, 1.00F},
-		{4, 0.0F, 1.00F},
-		{5, -0.5F, 0.88F}, {5, 0.5F, 0.94F},
-		{6, 0.0F, 0.86F},
-		{7, 0.5F, 0.74F},
-		{8, 0.0F, 0.62F},
-		{9, 0.5F, 0.48F},
-		{10, 0.0F, 0.34F},
-	};
-
 	private final Client client;
 	private long startedAt;
 	private boolean closing;
@@ -73,24 +58,13 @@ public final class SplashScreen implements ScreenBackend.ClientScreen {
 		float top = height / 2.0F - 62.0F;
 		float seconds = elapsed / 1.0e9F;
 		renderer.shadow(centerX - 26.0F, top + 14.0F, 52.0F, 62.0F, 26.0F, 34.0F, Colors.fade(Colors.withAlpha(theme.accent(), 70), fade));
-		for (int i = 0; i < CLUSTER.length; i++) {
-			float[] blossom = CLUSTER[i];
+		float[] grow = new float[BrandMark.CLUSTER.length];
+		for (int i = 0; i < grow.length; i++) {
 			// Each blossom pops in a moment after the one above it.
-			float local = Math.max(0.0F, Math.min(1.0F, (seconds - 0.05F * i) / 0.35F));
-			float grow = Easing.OUT_BACK.apply(local);
-			float half = STEP * 0.43F * blossom[2] * grow;
-			if (half <= 0.05F) {
-				continue;
-			}
-
-			float side = half * (float)Math.sqrt(2.0);
-			int colour = Colors.mix(theme.gradientStart(), theme.gradientEnd(), blossom[0] / 10.0F);
-			renderer.push();
-			renderer.translate(centerX + blossom[1] * STEP, top + blossom[0] * STEP / 2.0F);
-			renderer.rotate((float)(Math.PI / 4.0));
-			renderer.roundedRect(-side / 2.0F, -side / 2.0F, side, side, side * 0.22F, Colors.fade(colour, fade * Math.min(1.0F, local * 2.0F)));
-			renderer.pop();
+			grow[i] = Easing.OUT_BACK.apply(Math.max(0.0F, Math.min(1.0F, (seconds - 0.05F * i) / 0.35F)));
 		}
+
+		BrandMark.draw(renderer, centerX - BrandMark.width(STEP) / 2.0F, top - STEP * 0.45F, STEP, theme, fade, grow);
 
 		float text = Easing.OUT_CUBIC.apply(Math.max(0.0F, Math.min(1.0F, (seconds - 0.55F) / 0.4F))) * fade;
 		if (text > 0.03F) {

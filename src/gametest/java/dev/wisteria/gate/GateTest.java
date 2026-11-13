@@ -138,13 +138,13 @@ public final class GateTest implements FabricClientGameTest {
 	 */
 	private void core(ClientGameTestContext context, Platform platform, GateProbe probe, TestSingleplayerContext singleplayer, float scale) {
 		Client client = Wisteria.client();
-		check("core: modules registered", client.modules().all().size() == 4);
+		check("core: modules registered", client.modules().all().size() == 14);
 		check("core: starts with everything off", context.computeOnClient(minecraft -> client.modules().enabled().isEmpty()));
 
 		// A command typed into chat: runs in the client and must not reach the server.
 		probe.sentNames.clear();
 		chat(context, ".toggle watermark on");
-		chat(context, ".watermark corner bottom-right");
+		chat(context, ".hud watermark bottom-right");
 		context.waitTicks(5);
 		check("core: command switched Watermark on", context.computeOnClient(minecraft -> client.modules().get("watermark").isEnabled()));
 		check("core: command was not sent to the server", probe.sentNames.stream().noneMatch(name -> name.contains("Chat")));
@@ -278,12 +278,12 @@ public final class GateTest implements FabricClientGameTest {
 		chat(context, ".esp range 48");
 
 		// Just typing searches; with one match left, it is the first row.
-		boolean watermarkBefore = context.computeOnClient(minecraft -> client.modules().get("watermark").isEnabled());
-		context.getInput().typeChars("water");
+		boolean searchedBefore = context.computeOnClient(minecraft -> client.modules().get("fullbright").isEnabled());
+		context.getInput().typeChars("fullb");
 		context.waitTicks(4);
 		grabLastFrame(context, platform, "gate-clickgui-search");
 		click(context, 48.0F, firstRow + 8.5F, InputConstants.MOUSE_BUTTON_LEFT, scale);
-		check("gui: search narrows the list to the match", context.computeOnClient(minecraft -> client.modules().get("watermark").isEnabled()) != watermarkBefore);
+		check("gui: search narrows the list to the match", context.computeOnClient(minecraft -> client.modules().get("fullbright").isEnabled()) != searchedBefore);
 		click(context, 48.0F, firstRow + 8.5F, InputConstants.MOUSE_BUTTON_LEFT, scale);
 
 		// The last theme dot on the status line.
@@ -309,7 +309,7 @@ public final class GateTest implements FabricClientGameTest {
 		context.runOnClient(minecraft -> {
 			check("restart: profile", "gate".equals(client.config().profile()));
 			check("restart: Watermark still on", client.modules().get("watermark").isEnabled());
-			check("restart: Watermark corner", "bottom-right".equals(client.modules().get("watermark").setting("corner").format()));
+			check("restart: Watermark corner", client.hud().placement(client.hud().element("watermark")).anchor() == dev.wisteria.hud.Anchor.BOTTOM_RIGHT);
 			check("restart: ESP off", !client.modules().get("esp").isEnabled());
 			check("restart: ESP bind", client.modules().get("esp").bind().get().equals(Optional.of(Key.G)));
 			check("restart: ESP range", "48".equals(client.modules().get("esp").setting("range").format()));

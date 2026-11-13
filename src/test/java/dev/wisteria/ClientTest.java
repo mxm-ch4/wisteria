@@ -64,8 +64,10 @@ class ClientTest {
 
 	@Test
 	void theFirstModulesAreRegistered() {
-		assertEquals(List.of("fullbright", "esp", "watermark", "clickgui"), this.client.modules().all().stream().map(Module::id).toList());
-		assertEquals(3, this.client.modules().in(Category.RENDER).size());
+		assertEquals(List.of("fullbright", "esp", "clickgui", "watermark", "arraylist", "coordinates", "direction", "fps", "tps",
+			"target", "potions", "notifications", "keybinds", "hudeditor"), this.client.modules().all().stream().map(Module::id).toList());
+		assertEquals(2, this.client.modules().in(Category.RENDER).size());
+		assertEquals(11, this.client.modules().in(Category.HUD).size());
 		assertTrue(this.client.modules().enabled().isEmpty());
 		assertNotNull(this.client.modules().get("FullBright"));
 		assertNull(this.client.modules().get("killaura"));
@@ -236,19 +238,20 @@ class ClientTest {
 
 		ChatBackend.Completion commands = this.platform.tab(".t");
 		assertEquals(1, commands.start());
-		assertEquals(List.of("theme", "toggle"), commands.candidates());
+		assertEquals(List.of("target", "theme", "toggle", "tps"), commands.candidates(), "commands and module names");
 		assertEquals(List.of("toggle"), this.platform.tab(".to").candidates());
 		assertTrue(this.platform.tab(".").candidates().containsAll(List.of("help", "esp", "fullbright", "profile")));
 
 		ChatBackend.Completion modules = this.platform.tab(".toggle ");
 		assertEquals(8, modules.start());
-		assertEquals(List.of("clickgui", "esp", "fullbright", "watermark"), modules.candidates());
+		assertEquals(List.of("arraylist", "clickgui", "coordinates", "direction", "esp", "fps", "fullbright", "hudeditor", "keybinds",
+			"notifications", "potions", "target", "tps", "watermark"), modules.candidates());
 		assertEquals(List.of("fullbright"), this.platform.tab(".toggle fu").candidates());
 		assertEquals(List.of("off", "on"), this.platform.tab(".toggle esp ").candidates());
 
 		assertEquals(List.of("passive", "passive-color", "player-color", "players"), this.platform.tab(".set esp p").candidates());
 		assertEquals(List.of("off", "on", "toggle"), this.platform.tab(".esp players ").candidates());
-		assertEquals(List.of("bottom-left", "bottom-right"), this.platform.tab(".watermark corner b").candidates());
+		assertEquals(List.of("bottom-left", "bottom-right"), this.platform.tab(".hud watermark bottom-").candidates());
 		assertEquals(List.of("f1", "f10", "f11", "f12"), this.platform.tab(".bind esp f1").candidates());
 		assertEquals(List.of("default"), this.platform.tab(".profile load ").candidates());
 
@@ -265,7 +268,8 @@ class ClientTest {
 		this.platform.typeInChat(".bind esp g");
 		this.platform.typeInChat(".esp range 48");
 		this.platform.typeInChat(".esp player-color #FF8CE0B5");
-		this.platform.typeInChat(".watermark corner bottom-right");
+		this.platform.typeInChat(".hud watermark bottom-right");
+		this.platform.typeInChat(".watermark show-ping off");
 		this.platform.typeInChat(".toggle fullbright on");
 		this.platform.typeInChat(".friend add Popbob");
 		this.platform.typeInChat(".enemy add Fit");
@@ -277,7 +281,8 @@ class ClientTest {
 		assertTrue(this.module("esp").bind().matches(Key.G));
 		assertEquals("48", this.module("esp").setting("range").format());
 		assertEquals("#FF8CE0B5", this.module("esp").setting("player-color").format());
-		assertEquals("bottom-right", this.module("watermark").setting("corner").format());
+		assertEquals(dev.wisteria.hud.Anchor.BOTTOM_RIGHT, after.hud().placement(after.hud().element("watermark")).anchor());
+		assertEquals("off", this.module("watermark").setting("show-ping").format());
 		assertFalse(this.module("watermark").isEnabled());
 		assertTrue(after.relations().isFriend("Popbob"));
 		assertTrue(after.relations().isEnemy("Fit"));

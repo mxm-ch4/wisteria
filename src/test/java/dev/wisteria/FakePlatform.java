@@ -41,7 +41,12 @@ public final class FakePlatform implements Platform {
 		}
 	}
 
-	public void stop() {
+	/** One HUD frame, as the game draws it over the world. */
+	public void renderHud(dev.wisteria.render.Renderer2D renderer) {
+		this.listeners.forEach(listener -> listener.onRender2D(renderer, 1.0F));
+	}
+
+		public void stop() {
 		this.listeners.forEach(ClientListener::onStop);
 	}
 

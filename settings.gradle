@@ -7,6 +7,18 @@ pluginManagement {
 		mavenCentral()
 		gradlePluginPortal()
 	}
+	plugins {
+		id 'net.fabricmc.fabric-loom' version "${loom_version}"
+	}
 }
 
 rootProject.name = 'wisteria'
+
+// Logic, GUI, HUD, modules: plain Java, Minecraft is not on its classpath.
+include 'core'
+
+// One project per supported Minecraft version. Each builds its own jar from core + compat/common + its own sources.
+['26_1', '26_2', '26_3'].each { version ->
+	include "v${version}"
+	project(":v${version}").projectDir = file("compat/v${version}")
+}

@@ -1,0 +1,48 @@
+plugins {
+	id 'java-library'
+}
+
+// Everything here must run on every supported Minecraft version, so the game is deliberately absent
+// from the classpath: a direct call into Minecraft from core does not compile.
+// Libraries below ship with the game; versions are the oldest among supported versions (26.1.2).
+dependencies {
+	compileOnly 'org.slf4j:slf4j-api:2.0.17'
+	compileOnly 'com.google.code.gson:gson:2.13.2'
+	compileOnly 'org.jspecify:jspecify:1.0.0'
+
+	testImplementation platform('org.junit:junit-bom:5.13.4')
+	testImplementation 'org.junit.jupiter:junit-jupiter'
+	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+	testImplementation 'org.slf4j:slf4j-api:2.0.17'
+	testImplementation 'com.google.code.gson:gson:2.13.2'
+	testRuntimeOnly 'org.slf4j:slf4j-simple:2.0.17'
+}
+
+test {
+	useJUnitPlatform()
+}
+
+// A readable error on top of the compile error: name the offending file and the rule.
+def forbidden = ['net.minecraft.', 'com.mojang.', 'org.lwjgl.', 'net.fabricmc.', 'org.spongepowered.']
+def sources = fileTree('src/main/java').matching { include '**/*.java' }
+tasks.register('verifyBoundary') {
+	description = 'Fails if core imports Minecraft, LWJGL, Fabric or Mixin classes.'
+	group = 'verification'
+	inputs.files(sources)
+	def root = projectDir
+	doLast {
+		def problems = []
+		inputs.files.each { file ->
+			file.eachLine { line, number ->
+				def trimmed = line.trim()
+				if (trimmed.startsWith('import ') && forbidden.any { trimmed.contains(' ' + it) || trimmed.contains('static ' + it) }) {
+					problems << "${root.toPath().relativize(file.toPath())}:${number}: ${trimmed}"
+				}
+			}
+		}
+		if (!problems.isEmpty()) {
+			throw new GradleException("core/ must not touch the game directly; go through dev.wisteria.compat instead:\n  " + problems.join('\n  '))
+		}
+	}
+}
+tasks.named('compileJava') { dependsOn 'verifyBoundary' }

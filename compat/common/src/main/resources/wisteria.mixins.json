@@ -1,0 +1,12 @@
+{
+	"required": true,
+	"package": "dev.wisteria.compat.common.mixin",
+	"compatibilityLevel": "JAVA_25",
+	"client": [
+		"ConnectionMixin",
+		"KeyboardHandlerMixin"
+	],
+	"injectors": {
+		"defaultRequire": 1
+	}
+}

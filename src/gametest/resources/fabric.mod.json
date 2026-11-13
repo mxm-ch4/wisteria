@@ -2,13 +2,14 @@
 	"schemaVersion": 1,
 	"id": "wisteria-gate",
 	"version": "${version}",
-	"name": "Wisteria version gate",
-	"description": "Client game test that decides whether a Minecraft version is supported. Dev-only, never shipped.",
+	"name": "Wisteria gate",
+	"description": "Client game tests: the readiness gate and one test per module. Dev-only, never shipped.",
 	"license": "GPL-3.0-only",
 	"environment": "client",
 	"entrypoints": {
 		"fabric-client-gametest": [
-			"dev.wisteria.gate.GateTest"
+			"dev.wisteria.gate.GateTest",
+			"dev.wisteria.gate.modules.FullBrightGameTest"
 		]
 	},
 	"depends": {

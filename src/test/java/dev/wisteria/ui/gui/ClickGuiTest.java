@@ -13,7 +13,7 @@ import dev.wisteria.platform.Key;
 import dev.wisteria.platform.ScreenBackend.MouseButton;
 import dev.wisteria.module.Category;
 import dev.wisteria.module.Module;
-import dev.wisteria.module.impl.ClickGui;
+import dev.wisteria.modules.clickgui.ClickGui;
 import java.nio.file.Path;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;

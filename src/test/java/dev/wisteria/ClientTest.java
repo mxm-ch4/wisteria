@@ -154,7 +154,7 @@ class ClientTest {
 	@Test
 	void packetEventsCanBeCancelled() {
 		this.client.bus().subscribe(Events.PacketSend.class, event -> {
-			if (event.packet().name().equals("ServerboundSwingPacket")) {
+			if (event.name().equals("ServerboundSwingPacket")) {
 				event.cancel();
 			}
 		});

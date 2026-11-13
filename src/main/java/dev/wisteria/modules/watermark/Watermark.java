@@ -1,4 +1,4 @@
-package dev.wisteria.module.impl;
+package dev.wisteria.modules.watermark;
 
 import dev.wisteria.Wisteria;
 import dev.wisteria.render.Renderer2D;

@@ -67,7 +67,7 @@ public final class FakePlatform implements Platform {
 	public boolean send(String packetName) {
 		boolean cancelled = false;
 		for (PacketAdapter.PacketListener listener : this.packetListeners) {
-			cancelled |= listener.onSend(() -> packetName);
+			cancelled |= listener.onSend(new FakePacket(packetName));
 		}
 
 		return cancelled;
@@ -75,6 +75,14 @@ public final class FakePlatform implements Platform {
 
 	public String lastChatLine() {
 		return this.chatLines.isEmpty() ? "" : this.chatLines.get(this.chatLines.size() - 1);
+	}
+
+	/** Stands in for a game packet in tests: only the name is real. */
+	private record FakePacket(String name) implements PacketAdapter.PacketView {
+		@Override
+		public net.minecraft.network.protocol.Packet<?> packet() {
+			throw new UnsupportedOperationException("no game packets in unit tests");
+		}
 	}
 
 	// ---- Platform ----

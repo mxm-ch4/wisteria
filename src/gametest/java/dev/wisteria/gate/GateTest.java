@@ -1,6 +1,8 @@
 package dev.wisteria.gate;
 
 import com.mojang.blaze3d.platform.InputConstants;
+import static dev.wisteria.gate.GameTestKit.*;
+
 import dev.wisteria.Client;
 import dev.wisteria.Wisteria;
 import dev.wisteria.platform.AudioBackend;
@@ -8,7 +10,7 @@ import dev.wisteria.platform.Key;
 import dev.wisteria.platform.Platform;
 import dev.wisteria.render.Renderer2D;
 import dev.wisteria.platform.ScreenBackend;
-import dev.wisteria.module.impl.ClickGui;
+import dev.wisteria.modules.clickgui.ClickGui;
 import dev.wisteria.ui.SplashScreen;
 import java.io.IOException;
 import java.io.InputStream;
@@ -62,8 +64,8 @@ public final class GateTest implements FabricClientGameTest {
 			probe.captureTarget = true;
 			context.waitTicks(20);
 			LOG.info("3D target: {}", probe.targetInfo);
-			Frame world = this.grabLastFrame(context, platform, "gate-world");
-			float scale = world.width / probe.guiWidth;
+			Frame world = grabLastFrame(context, platform, "gate-world");
+			float scale = world.width() / probe.guiWidth;
 			// Panel body is dark, its very corner is cut away by the corner shader, the accent dot is violet.
 			check("2D: panel drawn", luminance(world.at(100.0F * scale, 30.0F * scale)) < 70);
 			int body = world.at(100.0F * scale, 30.0F * scale);
@@ -85,7 +87,7 @@ public final class GateTest implements FabricClientGameTest {
 			check("2D: glow outside the panel", tint > 5);
 			check("2D: outline on the panel edge", isViolet(world.at(100.0F * scale, (84.5F + 0.5F) * scale)));
 
-			int boxPixels = world.count(world.width / 2 - 110, world.height / 2 - 90, 220, 180, GateTest::isViolet);
+			int boxPixels = world.count(world.width() / 2 - 110, world.height() / 2 - 90, 220, 180, GameTestKit::isViolet);
 			LOG.info("3D: {} tinted pixels around the crosshair", boxPixels);
 			check("3D: box visible in a real frame", boxPixels > 800);
 
@@ -104,9 +106,9 @@ public final class GateTest implements FabricClientGameTest {
 			context.runOnClient(minecraft -> platform.screens().open(new GateScreen(closed)));
 			context.waitTicks(10);
 			check("screen open", context.computeOnClient(minecraft -> platform.screens().isAnyOpen()));
-			Frame screen = this.grabLastFrame(context, platform, "gate-screen");
-			check("screen: panel drawn", luminance(screen.at(screen.width / 2.0F, screen.height / 2.0F - 4.0F * scale)) < 70);
-			check("screen: accent button", isViolet(screen.at(screen.width / 2.0F - 80.0F * scale, screen.height / 2.0F + 20.0F * scale)));
+			Frame screen = grabLastFrame(context, platform, "gate-screen");
+			check("screen: panel drawn", luminance(screen.at(screen.width() / 2.0F, screen.height() / 2.0F - 4.0F * scale)) < 70);
+			check("screen: accent button", isViolet(screen.at(screen.width() / 2.0F - 80.0F * scale, screen.height() / 2.0F + 20.0F * scale)));
 			context.runOnClient(minecraft -> platform.screens().close());
 			context.waitTicks(5);
 			check("screen closed", !context.computeOnClient(minecraft -> platform.screens().isAnyOpen()) && closed.get());
@@ -141,13 +143,13 @@ public final class GateTest implements FabricClientGameTest {
 
 		// A command typed into chat: runs in the client and must not reach the server.
 		probe.sentNames.clear();
-		this.chat(context, ".toggle watermark on");
-		this.chat(context, ".watermark corner bottom-right");
+		chat(context, ".toggle watermark on");
+		chat(context, ".watermark corner bottom-right");
 		context.waitTicks(5);
 		check("core: command switched Watermark on", context.computeOnClient(minecraft -> client.modules().get("watermark").isEnabled()));
 		check("core: command was not sent to the server", probe.sentNames.stream().noneMatch(name -> name.contains("Chat")));
-		Frame hud = this.grabLastFrame(context, platform, "gate-core-hud");
-		int labelPixels = hud.count(hud.width - Math.round(110 * scale), hud.height - Math.round(26 * scale), Math.round(110 * scale), Math.round(26 * scale), GateTest::isViolet);
+		Frame hud = grabLastFrame(context, platform, "gate-core-hud");
+		int labelPixels = hud.count(hud.width() - Math.round(110 * scale), hud.height() - Math.round(26 * scale), Math.round(110 * scale), Math.round(26 * scale), GameTestKit::isViolet);
 		LOG.info("core: {} accent pixels in the watermark corner", labelPixels);
 		check("core: Watermark visible in a real frame", labelPixels > 40);
 
@@ -168,55 +170,42 @@ public final class GateTest implements FabricClientGameTest {
 		context.waitForScreen(null);
 
 		// A bound key, pressed in the game.
-		this.chat(context, ".bind esp g");
-		this.chat(context, ".esp passive on");
-		this.chat(context, ".esp passive-color #FF8B6CFF");
-		this.chat(context, ".esp fill 120");
-		this.chat(context, ".esp range 48");
+		chat(context, ".bind esp g");
+		chat(context, ".esp passive on");
+		chat(context, ".esp passive-color #FF8B6CFF");
+		chat(context, ".esp fill 120");
+		chat(context, ".esp range 48");
 		singleplayer.getServer().runCommand("summon minecraft:armor_stand 0.5 -60 4.5 {NoGravity:1b}");
 		context.waitTicks(10);
-		Frame before = this.grabLastFrame(context, platform, "gate-core-esp-off");
-		int tintBefore = before.count(before.width / 2 - 110, before.height / 2 - 120, 220, 240, GateTest::isViolet);
+		Frame before = grabLastFrame(context, platform, "gate-core-esp-off");
+		int tintBefore = before.count(before.width() / 2 - 110, before.height() / 2 - 120, 220, 240, GameTestKit::isViolet);
 		context.getInput().pressKey(InputConstants.KEY_G);
 		context.waitTicks(10);
 		check("core: bound key switched ESP on", context.computeOnClient(minecraft -> client.modules().get("esp").isEnabled()));
-		Frame esp = this.grabLastFrame(context, platform, "gate-core-esp-on");
-		int tintAfter = esp.count(esp.width / 2 - 110, esp.height / 2 - 120, 220, 240, GateTest::isViolet);
+		Frame esp = grabLastFrame(context, platform, "gate-core-esp-on");
+		int tintAfter = esp.count(esp.width() / 2 - 110, esp.height() / 2 - 120, 220, 240, GameTestKit::isViolet);
 		LOG.info("core: tinted pixels around the armor stand: {} -> {}", tintBefore, tintAfter);
 		check("core: ESP box visible in a real frame", tintAfter > tintBefore + 300);
 		context.getInput().pressKey(InputConstants.KEY_G);
 		context.waitTicks(5);
 		check("core: bound key switched ESP off again", !context.computeOnClient(minecraft -> client.modules().get("esp").isEnabled()));
 
-		// FullBright at midnight: the ground gets visibly brighter.
-		singleplayer.getServer().runCommand("time set midnight");
-		context.waitTicks(40);
-		Frame night = this.grabLastFrame(context, platform, "gate-core-night");
-		this.chat(context, ".toggle fullbright on");
-		context.waitTicks(20);
-		Frame bright = this.grabLastFrame(context, platform, "gate-core-fullbright");
-		// Ground to the right of the crosshair: clear of the chat on the left and of the hand below.
-		int dark = night.meanLuminance(night.width * 6 / 10, night.height * 52 / 100, night.width * 35 / 100, night.height * 16 / 100);
-		int lit = bright.meanLuminance(bright.width * 6 / 10, bright.height * 52 / 100, bright.width * 35 / 100, bright.height * 16 / 100);
-		LOG.info("core: ground luminance at midnight {} -> {} with FullBright", dark, lit);
-		check("core: FullBright brightens the world", lit > dark * 3 / 2 && lit > dark + 15);
-		this.chat(context, ".toggle fullbright off");
 
 		// The design system reference screen, and a theme switch applied while it is open.
 		singleplayer.getServer().runCommand("time set noon");
-		this.chat(context, ".design");
+		chat(context, ".design");
 		context.waitTicks(20);
 		check("design: screen open", context.computeOnClient(minecraft -> platform.screens().isAnyOpen()));
-		Frame design = this.grabLastFrame(context, platform, "gate-design");
+		Frame design = grabLastFrame(context, platform, "gate-design");
 		float panelX = Math.round((probe.guiWidth - 408.0F) / 2.0F);
-		float panelY = Math.round((design.height / scale - 222.0F) / 2.0F);
+		float panelY = Math.round((design.height() / scale - 222.0F) / 2.0F);
 		int swatch = design.at((panelX + 61.0F) * scale, (panelY + 92.0F) * scale);
 		LOG.info("design: accent swatch is #{}", Integer.toHexString(swatch));
 		check("design: panel drawn", luminance(design.at((panelX + 204.0F) * scale, (panelY + 200.0F) * scale)) < 70);
 		check("design: accent swatch in the theme's accent", distance(swatch, 0xFFB79CFF) < 30);
-		this.chat(context, ".theme mint");
+		chat(context, ".theme mint");
 		context.waitTicks(5);
-		Frame mint = this.grabLastFrame(context, platform, "gate-design-mint");
+		Frame mint = grabLastFrame(context, platform, "gate-design-mint");
 		int mintSwatch = mint.at((panelX + 61.0F) * scale, (panelY + 92.0F) * scale);
 		LOG.info("design: after .theme mint the swatch is #{}", Integer.toHexString(mintSwatch));
 		check("design: theme switch applies at once", distance(mintSwatch, 0xFF7FE3BC) < 30);
@@ -224,11 +213,11 @@ public final class GateTest implements FabricClientGameTest {
 		context.waitTicks(5);
 
 		this.clickGui(context, platform, client, scale);
-		this.chat(context, ".theme mint");
+		chat(context, ".theme mint");
 
 		// Left for the second launch to verify.
-		this.chat(context, ".friend add GateFriend");
-		this.chat(context, ".profile save gate");
+		chat(context, ".friend add GateFriend");
+		chat(context, ".profile save gate");
 		context.waitTicks(5);
 		check("core: profile switched", "gate".equals(context.computeOnClient(minecraft -> client.config().profile())));
 		LOG.info("core checks passed; state left for the restart check");
@@ -242,8 +231,8 @@ public final class GateTest implements FabricClientGameTest {
 		check("splash: triggered when the title screen first appeared", client.isReady());
 		context.runOnClient(minecraft -> platform.screens().open(new SplashScreen(client)));
 		context.waitTicks(26);
-		Frame frame = this.grabLastFrame(context, platform, "gate-splash");
-		int blossoms = frame.count(frame.width / 2 - 60, frame.height / 2 - 140, 120, 200, GateTest::isViolet);
+		Frame frame = grabLastFrame(context, platform, "gate-splash");
+		int blossoms = frame.count(frame.width() / 2 - 60, frame.height() / 2 - 140, 120, 200, GameTestKit::isViolet);
 		LOG.info("splash: {} accent pixels in the mark", blossoms);
 		check("splash: shown over the title screen", context.computeOnClient(minecraft -> !(GateHooks.currentScreen(minecraft) instanceof TitleScreen)));
 		check("splash: mark drawn", blossoms > 1500);
@@ -260,16 +249,16 @@ public final class GateTest implements FabricClientGameTest {
 		context.getInput().pressKey(InputConstants.KEY_RSHIFT);
 		context.waitTicks(15);
 		check("gui: Right Shift opens it", context.computeOnClient(minecraft -> client.modules().get("clickgui").isEnabled() && platform.screens().isAnyOpen()));
-		this.grabLastFrame(context, platform, "gate-clickgui");
+		grabLastFrame(context, platform, "gate-clickgui");
 
 		float firstRow = 32.0F + 22.0F + 1.0F;
 		boolean fullBrightBefore = context.computeOnClient(minecraft -> client.modules().get("fullbright").isEnabled());
-		this.click(context, 48.0F, firstRow + 8.5F, InputConstants.MOUSE_BUTTON_LEFT, scale);
+		click(context, 48.0F, firstRow + 8.5F, InputConstants.MOUSE_BUTTON_LEFT, scale);
 		check("gui: left click toggles a module", context.computeOnClient(minecraft -> client.modules().get("fullbright").isEnabled()) != fullBrightBefore);
-		this.click(context, 48.0F, firstRow + 8.5F, InputConstants.MOUSE_BUTTON_LEFT, scale);
+		click(context, 48.0F, firstRow + 8.5F, InputConstants.MOUSE_BUTTON_LEFT, scale);
 
 		// Right click unfolds ESP; its Range slider sits under the Bind row.
-		this.click(context, 48.0F, firstRow + 17.0F + 8.5F, InputConstants.MOUSE_BUTTON_RIGHT, scale);
+		click(context, 48.0F, firstRow + 17.0F + 8.5F, InputConstants.MOUSE_BUTTON_RIGHT, scale);
 		context.waitTicks(8);
 		float sliderY = firstRow + 2.0F * 17.0F + 4.0F + 15.0F + 16.0F;
 		context.getInput().setCursorPos((17.0F + 50.0F) * scale, sliderY * scale);
@@ -285,25 +274,25 @@ public final class GateTest implements FabricClientGameTest {
 		LOG.info("gui: slider at half = {}, dragged to the end = {}", half, full);
 		check("gui: clicking the slider sets the value", "132".equals(half));
 		check("gui: dragging the slider follows the cursor", "256".equals(full));
-		this.grabLastFrame(context, platform, "gate-clickgui-settings");
-		this.chat(context, ".esp range 48");
+		grabLastFrame(context, platform, "gate-clickgui-settings");
+		chat(context, ".esp range 48");
 
 		// Just typing searches; with one match left, it is the first row.
 		boolean watermarkBefore = context.computeOnClient(minecraft -> client.modules().get("watermark").isEnabled());
 		context.getInput().typeChars("water");
 		context.waitTicks(4);
-		this.grabLastFrame(context, platform, "gate-clickgui-search");
-		this.click(context, 48.0F, firstRow + 8.5F, InputConstants.MOUSE_BUTTON_LEFT, scale);
+		grabLastFrame(context, platform, "gate-clickgui-search");
+		click(context, 48.0F, firstRow + 8.5F, InputConstants.MOUSE_BUTTON_LEFT, scale);
 		check("gui: search narrows the list to the match", context.computeOnClient(minecraft -> client.modules().get("watermark").isEnabled()) != watermarkBefore);
-		this.click(context, 48.0F, firstRow + 8.5F, InputConstants.MOUSE_BUTTON_LEFT, scale);
+		click(context, 48.0F, firstRow + 8.5F, InputConstants.MOUSE_BUTTON_LEFT, scale);
 
 		// The last theme dot on the status line.
 		float guiWidth = context.computeOnClient(minecraft -> (float)minecraft.getWindow().getGuiScaledWidth());
 		float guiHeight = context.computeOnClient(minecraft -> (float)minecraft.getWindow().getGuiScaledHeight());
-		this.click(context, guiWidth - 10.0F - 15.0F + 4.5F, guiHeight - 15.0F + 5.5F, InputConstants.MOUSE_BUTTON_LEFT, scale);
+		click(context, guiWidth - 10.0F - 15.0F + 4.5F, guiHeight - 15.0F + 5.5F, InputConstants.MOUSE_BUTTON_LEFT, scale);
 		check("gui: a theme dot switches the theme", "frost".equals(context.computeOnClient(minecraft -> client.themes().presetId())));
 		context.waitTicks(3);
-		this.grabLastFrame(context, platform, "gate-clickgui-frost");
+		grabLastFrame(context, platform, "gate-clickgui-frost");
 
 		double micros = context.computeOnClient(minecraft -> ((ClickGui)client.modules().get("clickgui")).screen().renderMicros());
 		LOG.info("gui: {} microseconds of CPU per frame to lay out and submit the GUI", Math.round(micros));
@@ -312,13 +301,6 @@ public final class GateTest implements FabricClientGameTest {
 		context.getInput().pressKey(InputConstants.KEY_RSHIFT);
 		context.waitTicks(5);
 		check("gui: Right Shift closes it", context.computeOnClient(minecraft -> !client.modules().get("clickgui").isEnabled() && !platform.screens().isAnyOpen()));
-	}
-
-	private void click(ClientGameTestContext context, float guiX, float guiY, int button, float scale) {
-		context.getInput().setCursorPos(guiX * scale, guiY * scale);
-		context.waitTicks(2);
-		context.getInput().pressMouse(button);
-		context.waitTicks(3);
 	}
 
 	/** Second launch of the same game directory: is everything the first launch set still there? */
@@ -341,12 +323,6 @@ public final class GateTest implements FabricClientGameTest {
 		// The splash may still be playing; the test harness wants to be handed back the title screen.
 		context.waitFor(minecraft -> GateHooks.currentScreen(minecraft) instanceof TitleScreen);
 		LOG.info("gate restart check passed: Minecraft {} on {}", platform.minecraftVersion(), platform.graphicsBackend());
-	}
-
-	/** Sends a line the way the chat box does. */
-	private void chat(ClientGameTestContext context, String line) {
-		context.runOnClient(minecraft -> minecraft.player.connection.sendChat(line));
-		context.waitTick();
 	}
 
 	// The chat box's text field is not public; this is a test, so read it by name.
@@ -399,101 +375,6 @@ public final class GateTest implements FabricClientGameTest {
 		track.stop();
 		context.waitTicks(10);
 		check("track stopped", !context.computeOnClient(minecraft -> track.isActive()));
-	}
-
-	/**
-	 * Reads back the frame the player last saw and saves it to <game dir>/gate/<name>.png. The test API's own
-	 * screenshot renders an extra frame outside the normal loop, which on 26.1 misses per-frame world drawing.
-	 */
-	private Frame grabLastFrame(ClientGameTestContext context, Platform platform, String name) {
-		CompletableFuture<Frame> result = new CompletableFuture<>();
-		Path file = platform.gameDirectory().resolve("gate").resolve(name + ".png");
-		context.runOnClient(minecraft -> Screenshot.takeScreenshot(GateHooks.mainTarget(minecraft), image -> {
-			try (image) {
-				Files.createDirectories(file.getParent());
-				image.writeToFile(file);
-				int width = image.getWidth();
-				int height = image.getHeight();
-				int[] pixels = new int[width * height];
-				for (int y = 0; y < height; y++) {
-					for (int x = 0; x < width; x++) {
-						pixels[y * width + x] = image.getPixel(x, y);
-					}
-				}
-
-				result.complete(new Frame(width, height, pixels));
-			} catch (Exception e) {
-				result.completeExceptionally(e);
-			}
-		}));
-
-		for (int i = 0; i < 200 && !result.isDone(); i++) {
-			context.waitTick();
-		}
-
-		return result.join();
-	}
-
-	private static int distance(int a, int b) {
-		return Math.abs((a >> 16 & 0xFF) - (b >> 16 & 0xFF)) + Math.abs((a >> 8 & 0xFF) - (b >> 8 & 0xFF)) + Math.abs((a & 0xFF) - (b & 0xFF));
-	}
-
-	private static int redOverGreen(int argb) {
-		return (argb >> 16 & 0xFF) - (argb >> 8 & 0xFF);
-	}
-
-	private static int luminance(int argb) {
-		return ((argb >> 16 & 0xFF) * 3 + (argb >> 8 & 0xFF) * 6 + (argb & 0xFF)) / 10;
-	}
-
-	/** Our accent tints: red above green and blue well above it. Sky (b > g > r) and grass (g highest) never match. */
-	private static boolean isViolet(int argb) {
-		int r = argb >> 16 & 0xFF;
-		int g = argb >> 8 & 0xFF;
-		int b = argb & 0xFF;
-		return r > g + 8 && b > g + 20;
-	}
-
-	private record Frame(int width, int height, int[] pixels) {
-		int at(float x, float y) {
-			int px = Math.max(0, Math.min(this.width - 1, Math.round(x)));
-			int py = Math.max(0, Math.min(this.height - 1, Math.round(y)));
-			return this.pixels[py * this.width + px];
-		}
-
-		int meanLuminance(int x0, int y0, int w, int h) {
-			long sum = 0;
-			int n = 0;
-			for (int y = Math.max(0, y0); y < Math.min(this.height, y0 + h); y++) {
-				for (int x = Math.max(0, x0); x < Math.min(this.width, x0 + w); x++) {
-					sum += luminance(this.pixels[y * this.width + x]);
-					n++;
-				}
-			}
-
-			return n == 0 ? 0 : (int)(sum / n);
-		}
-
-		int count(int x0, int y0, int w, int h, java.util.function.IntPredicate test) {
-			int matches = 0;
-			for (int y = Math.max(0, y0); y < Math.min(this.height, y0 + h); y++) {
-				for (int x = Math.max(0, x0); x < Math.min(this.width, x0 + w); x++) {
-					if (test.test(this.pixels[y * this.width + x])) {
-						matches++;
-					}
-				}
-			}
-
-			return matches;
-		}
-	}
-
-	private static void check(String what, boolean ok) {
-		if (!ok) {
-			throw new AssertionError("Gate failed: " + what);
-		}
-
-		LOG.info("ok: {}", what);
 	}
 
 	private record GateScreen(AtomicBoolean closed) implements ScreenBackend.ClientScreen {

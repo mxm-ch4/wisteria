@@ -1,4 +1,4 @@
-package dev.wisteria.module.impl;
+package dev.wisteria.modules.esp;
 
 import dev.wisteria.render.Renderer3D;
 import dev.wisteria.platform.WorldBackend;

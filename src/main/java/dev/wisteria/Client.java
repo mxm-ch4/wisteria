@@ -11,10 +11,8 @@ import dev.wisteria.event.EventBus;
 import dev.wisteria.event.Events;
 import dev.wisteria.module.Module;
 import dev.wisteria.module.ModuleManager;
-import dev.wisteria.module.impl.ClickGui;
-import dev.wisteria.module.impl.EntityEsp;
-import dev.wisteria.module.impl.FullBright;
-import dev.wisteria.module.impl.Watermark;
+import dev.wisteria.modules.Modules;
+import java.util.List;
 import dev.wisteria.social.Relations;
 import dev.wisteria.ui.SplashScreen;
 import dev.wisteria.ui.ThemeManager;
@@ -33,15 +31,17 @@ public final class Client {
 	private final ConfigManager config;
 
 	public Client(Platform platform) {
+		this(platform, Modules.create());
+	}
+
+	/** @param modules what to register instead of the shipped set; tests use this to add the module under test */
+	public Client(Platform platform, List<Module> modules) {
 		this.platform = platform;
 		this.modules = new ModuleManager(this);
 		this.commands = new CommandManager(this);
 		this.config = new ConfigManager(this, platform.gameDirectory().resolve(Wisteria.ID));
 
-		this.modules.register(new FullBright());
-		this.modules.register(new EntityEsp());
-		this.modules.register(new Watermark());
-		this.modules.register(new ClickGui());
+		modules.forEach(this.modules::register);
 
 		// A handler that throws takes its own module down, not the game.
 		this.bus.onError((subscription, error) -> {
@@ -67,6 +67,21 @@ public final class Client {
 
 	private void bridge() {
 		this.platform.listen(new ClientListener() {
+			@Override
+			public void onTickStart() {
+				Client.this.bus.post(Events.TickStart.INSTANCE);
+			}
+
+			@Override
+			public void onJoin() {
+				Client.this.bus.post(Events.Join.INSTANCE);
+			}
+
+			@Override
+			public void onLeave() {
+				Client.this.bus.post(Events.Leave.INSTANCE);
+			}
+
 			@Override
 			public void onTick() {
 				Client.this.bus.post(Events.Tick.INSTANCE);

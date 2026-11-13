@@ -1,4 +1,4 @@
-package dev.wisteria.module.impl;
+package dev.wisteria.modules.clickgui;
 
 import dev.wisteria.platform.Key;
 import dev.wisteria.module.Category;

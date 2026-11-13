@@ -1,6 +1,10 @@
 package dev.wisteria.module;
 
 import dev.wisteria.Client;
+import dev.wisteria.platform.Platform;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.multiplayer.ClientLevel;
+import net.minecraft.client.player.LocalPlayer;
 import dev.wisteria.platform.Key;
 import dev.wisteria.event.EventBus;
 import dev.wisteria.setting.KeySetting;
@@ -94,6 +98,33 @@ public abstract class Module {
 	/** Subscribes to an event for as long as the module is enabled; call from the constructor. */
 	protected final <E> void on(Class<E> type, Consumer<E> handler) {
 		this.handlers.add(new Handler<>(type, handler));
+	}
+
+	/** The game. Call it on the client thread. Null only in unit tests, where there is no game. */
+	protected final Minecraft mc() {
+		return Minecraft.getInstance();
+	}
+
+	/** The player, or null when not in a world (and in unit tests). Check it before acting. */
+	protected final @Nullable LocalPlayer player() {
+		Minecraft minecraft = Minecraft.getInstance();
+		return minecraft != null ? minecraft.player : null;
+	}
+
+	/** The world the player is in, or null when not in one (and in unit tests). */
+	protected final @Nullable ClientLevel level() {
+		Minecraft minecraft = Minecraft.getInstance();
+		return minecraft != null ? minecraft.level : null;
+	}
+
+	/** Shorthand for {@code client().platform()}. */
+	protected final Platform platform() {
+		return this.client().platform();
+	}
+
+	/** Prints a line in chat, prefixed with the module's name. Client-side only; nothing is sent. */
+	protected final void info(String message) {
+		this.client().platform().chat().print(this.name + ": " + message);
 	}
 
 	/** The running client. Only valid once the module is registered, so not in the constructor. */

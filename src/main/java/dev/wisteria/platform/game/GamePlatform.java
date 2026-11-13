@@ -25,6 +25,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.Consumer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLifecycleEvents;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
+import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
 import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry;
 import net.fabricmc.fabric.api.client.rendering.v1.level.LevelExtractionContext;
 import net.fabricmc.loader.api.FabricLoader;
@@ -67,6 +68,24 @@ public final class GamePlatform implements Platform {
 		ClientLifecycleEvents.CLIENT_STOPPING.register(minecraft -> {
 			for (ClientListener listener : this.listeners) {
 				listener.onStop();
+			}
+		});
+
+		ClientTickEvents.START_CLIENT_TICK.register(minecraft -> {
+			for (ClientListener listener : this.listeners) {
+				listener.onTickStart();
+			}
+		});
+
+		ClientPlayConnectionEvents.JOIN.register((handler, sender, minecraft) -> {
+			for (ClientListener listener : this.listeners) {
+				listener.onJoin();
+			}
+		});
+
+		ClientPlayConnectionEvents.DISCONNECT.register((handler, minecraft) -> {
+			for (ClientListener listener : this.listeners) {
+				listener.onLeave();
 			}
 		});
 

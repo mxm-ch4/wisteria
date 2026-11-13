@@ -1,4 +1,4 @@
-package dev.wisteria.module.impl;
+package dev.wisteria.modules.fullbright;
 
 import dev.wisteria.module.Category;
 import dev.wisteria.module.Module;

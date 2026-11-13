@@ -13,6 +13,11 @@ public interface Platform {
 	/** "OpenGL" or "Vulkan". */
 	String graphicsBackend();
 
+	/** The client's own version, e.g. "0.1.0". */
+	default String clientVersion() {
+		return "dev";
+	}
+
 	/** The .minecraft directory of this instance. */
 	Path gameDirectory();
 

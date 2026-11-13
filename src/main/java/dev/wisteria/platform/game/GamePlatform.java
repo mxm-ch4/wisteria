@@ -218,6 +218,12 @@ public final class GamePlatform implements Platform {
 		.build();
 
 	@Override
+	public String clientVersion() {
+		return net.fabricmc.loader.api.FabricLoader.getInstance().getModContainer(dev.wisteria.Wisteria.ID)
+			.map(container -> container.getMetadata().getVersion().getFriendlyString()).orElse("dev");
+	}
+
+	@Override
 	public String minecraftVersion() {
 		return "26.2";
 	}

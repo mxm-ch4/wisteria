@@ -18,6 +18,14 @@ abstract class GuiMixin {
 
 	@Inject(method = "setScreen", at = @At("HEAD"), cancellable = true)
 	private void wisteria$setScreen(@Nullable Screen next, CallbackInfo ci) {
+		// The game's plain title screen becomes the client's menu, when that is on.
+		Screen branded = next != null ? dev.wisteria.platform.game.GameScreens.replaceTitle(next) : null;
+		if (branded != null) {
+			ci.cancel();
+			((Gui)(Object)this).setScreen(branded);
+			return;
+		}
+
 		if (next != null && next != this.screen && Wisteria.post(new Events.ScreenOpen(next)).isCancelled()) {
 			ci.cancel();
 			return;

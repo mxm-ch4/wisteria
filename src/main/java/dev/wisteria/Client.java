@@ -103,6 +103,11 @@ public final class Client {
 			}
 		});
 		this.config.profileChanged();
+		// The game's title screen shows the client's menu while Client -> Interface -> Branded Menu is on.
+		platform.screens().setMainMenu(() -> {
+			dev.wisteria.modules.client.InterfaceSection section = this.modules.get(dev.wisteria.modules.client.InterfaceSection.class);
+			return section == null || section.brandedMenu() ? new dev.wisteria.ui.MainMenuScreen(this) : null;
+		});
 		dev.wisteria.modules.client.InterfaceSection interfaceSection = this.modules.get(dev.wisteria.modules.client.InterfaceSection.class);
 		if (interfaceSection != null) {
 			interfaceSection.sync(this.themes.presetId());

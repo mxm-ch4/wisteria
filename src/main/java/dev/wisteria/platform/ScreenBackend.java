@@ -16,6 +16,27 @@ public interface ScreenBackend {
 	/** True while any screen, the game's or ours, is open. */
 	boolean isAnyOpen();
 
+	/** The game's own screens the main menu leads to. */
+	enum GameScreen {
+		SINGLEPLAYER, MULTIPLAYER, OPTIONS, CREDITS, QUIT
+	}
+
+	/** Opens one of the game's screens over the current one (Quit closes the game). */
+	default void openGame(GameScreen screen) {
+	}
+
+	/**
+	 * Gives the game's title screen the client's menu: whenever the game shows its title screen, the supplier is asked
+	 * for a menu, and a null answer keeps the game's own.
+	 */
+	default void setMainMenu(java.util.function.Supplier<ClientScreen> menu) {
+	}
+
+	/** The game's text for a translation key, or the fallback where there is none (tests). */
+	default String translate(String key, String fallback) {
+		return fallback;
+	}
+
 	interface ClientScreen {
 		String title();
 

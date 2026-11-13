@@ -92,13 +92,13 @@ public final class GameScreens implements ScreenBackend {
 
 		@Override
 		public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
-			MouseButton button = button(event.buttonInfo().button());
+			MouseButton button = GameScreens.button(event.buttonInfo().button());
 			return button != null && this.screen.mouseDown((float)event.x(), (float)event.y(), button) || super.mouseClicked(event, doubleClick);
 		}
 
 		@Override
 		public boolean mouseReleased(MouseButtonEvent event) {
-			MouseButton button = button(event.buttonInfo().button());
+			MouseButton button = GameScreens.button(event.buttonInfo().button());
 			if (button != null) {
 				this.screen.mouseUp((float)event.x(), (float)event.y(), button);
 			}
@@ -125,18 +125,6 @@ public final class GameScreens implements ScreenBackend {
 		}
 
 		// Button numbers differ between versions (GLFW counts from 0, SDL from 1); the constant names do not.
-		private static @Nullable MouseButton button(int nativeButton) {
-			if (nativeButton == InputConstants.MOUSE_BUTTON_LEFT) {
-				return MouseButton.LEFT;
-			}
-
-			if (nativeButton == InputConstants.MOUSE_BUTTON_RIGHT) {
-				return MouseButton.RIGHT;
-			}
-
-			return nativeButton == InputConstants.MOUSE_BUTTON_MIDDLE ? MouseButton.MIDDLE : null;
-		}
-
 		@Override
 		public void removed() {
 			super.removed();
@@ -152,5 +140,58 @@ public final class GameScreens implements ScreenBackend {
 		public boolean isPauseScreen() {
 			return false;
 		}
+	}
+
+	static @Nullable MouseButton button(int nativeButton) {
+		if (nativeButton == InputConstants.MOUSE_BUTTON_LEFT) {
+			return MouseButton.LEFT;
+		}
+
+		if (nativeButton == InputConstants.MOUSE_BUTTON_RIGHT) {
+			return MouseButton.RIGHT;
+		}
+
+		return nativeButton == InputConstants.MOUSE_BUTTON_MIDDLE ? MouseButton.MIDDLE : null;
+	}
+
+	// ---- the main menu ----
+
+	private static volatile java.util.function.@Nullable Supplier<ClientScreen> mainMenu;
+
+	@Override
+	public void setMainMenu(java.util.function.Supplier<ClientScreen> menu) {
+		mainMenu = menu;
+	}
+
+	/** For the screen mixin: the client's menu in place of the game's plain title screen, or null to keep the game's. */
+	public static net.minecraft.client.gui.screens.@Nullable Screen replaceTitle(net.minecraft.client.gui.screens.Screen next) {
+		java.util.function.Supplier<ClientScreen> supplier = mainMenu;
+		if (supplier == null || next.getClass() != net.minecraft.client.gui.screens.TitleScreen.class) {
+			return null;
+		}
+
+		ClientScreen menu = supplier.get();
+		return menu == null ? null : new BrandedTitleScreen(GamePlatform.instance(), menu);
+	}
+
+	@Override
+	public void openGame(GameScreen which) {
+		Minecraft minecraft = Minecraft.getInstance();
+		net.minecraft.client.gui.screens.Screen parent = this.platform.currentScreen();
+		switch (which) {
+			case SINGLEPLAYER -> this.platform.setScreen(new net.minecraft.client.gui.screens.worldselection.SelectWorldScreen(parent));
+			case MULTIPLAYER -> this.platform.setScreen(minecraft.options.skipMultiplayerWarning
+				? new net.minecraft.client.gui.screens.multiplayer.JoinMultiplayerScreen(parent)
+				: new net.minecraft.client.gui.screens.multiplayer.SafetyScreen(parent));
+			case OPTIONS -> this.platform.setScreen(new net.minecraft.client.gui.screens.options.OptionsScreen(parent, minecraft.options, false));
+			case CREDITS -> this.platform.setScreen(new net.minecraft.client.gui.screens.CreditsAndAttributionScreen(parent));
+			case QUIT -> minecraft.stop();
+		}
+	}
+
+	@Override
+	public String translate(String key, String fallback) {
+		String text = net.minecraft.client.resources.language.I18n.get(key);
+		return text.equals(key) ? fallback : text;
 	}
 }

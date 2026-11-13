@@ -19,6 +19,10 @@ public final class FakePlatform implements Platform {
 	public final List<String> chatLines = new ArrayList<>();
 	public final List<WorldBackend.Entity> entities = new ArrayList<>();
 	public final List<WorldBackend.Container> containers = new ArrayList<>();
+	/** The game's screens the client asked for, in order. */
+	public final List<ScreenBackend.GameScreen> gameScreens = new ArrayList<>();
+	/** What the client would show as the main menu. */
+	public java.util.function.Supplier<ScreenBackend.ClientScreen> mainMenu;
 	public float brightness;
 	public boolean worldLoaded = true;
 	public String clipboard = "";
@@ -175,6 +179,16 @@ public final class FakePlatform implements Platform {
 			@Override
 			public boolean isAnyOpen() {
 				return FakePlatform.this.openScreen != null;
+			}
+
+			@Override
+			public void openGame(GameScreen screen) {
+				FakePlatform.this.gameScreens.add(screen);
+			}
+
+			@Override
+			public void setMainMenu(java.util.function.Supplier<ClientScreen> menu) {
+				FakePlatform.this.mainMenu = menu;
 			}
 		};
 	}

@@ -16,10 +16,10 @@ args=(runClientGameTest --console=plain)
 [ -n "$backend" ] && args+=("-Pbackend=$backend")
 status=0
 : > "$out/$run.restart.log"
-xvfb-run -a -s "-screen 0 1280x720x24" ./gradlew "${args[@]}" > "$out/$run.log" 2>&1 || status=$?
+xvfb-run -a -s "-screen 0 1920x1080x24" ./gradlew "${args[@]}" > "$out/$run.log" 2>&1 || status=$?
 # Second launch over the same game directory: did the settings from the first one survive a real restart?
 if [ $status -eq 0 ]; then
-	WISTERIA_GATE_PHASE=restart xvfb-run -a -s "-screen 0 1280x720x24" ./gradlew "${args[@]}" > "$out/$run.restart.log" 2>&1 || status=$?
+	WISTERIA_GATE_PHASE=restart xvfb-run -a -s "-screen 0 1920x1080x24" ./gradlew "${args[@]}" > "$out/$run.restart.log" 2>&1 || status=$?
 	if [ $status -eq 0 ] && ! grep -q "gate restart check passed" "$out/$run.restart.log"; then
 		echo "gate.sh: the restart phase did not run" >&2
 		status=4

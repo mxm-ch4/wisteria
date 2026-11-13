@@ -18,6 +18,8 @@ public final class Animation {
 	/** A whole screen opening or closing. */
 	public static final long SLOW = 350L;
 
+	private static volatile LongSupplier clock = System::nanoTime;
+
 	private final LongSupplier nanoClock;
 	private final long durationNanos;
 	private final Easing easing;
@@ -27,7 +29,17 @@ public final class Animation {
 	private boolean running;
 
 	public Animation(float initial, long durationMillis, Easing easing) {
-		this(initial, durationMillis, easing, System::nanoTime);
+		this(initial, durationMillis, easing, () -> clock.getAsLong());
+	}
+
+	/** Replaces the clock of every animation made without an explicit one. For tests: jump time instead of sleeping. */
+	public static void useClock(LongSupplier nanoClock) {
+		clock = nanoClock;
+	}
+
+	/** Back to real time. */
+	public static void useRealClock() {
+		clock = System::nanoTime;
 	}
 
 	/** @param nanoClock a monotonic clock in nanoseconds; tests pass their own */

@@ -29,7 +29,8 @@ public final class ClickGuiScreen implements ScreenBackend.ClientScreen {
 	private final Client client;
 	private final Runnable onClosed;
 	private final List<Panel> panels = new ArrayList<>();
-	private final TextInput search = new TextInput("Search modules", 32);
+	private final TextInput search = new TextInput("search", "Search modules", 32);
+	private final Controls controls = new Controls();
 	private final Animation open = new Animation(0.0F, Animation.SLOW, Easing.OUT_QUINT);
 	private String hint = "";
 	private String shownHint = "";
@@ -92,7 +93,8 @@ public final class ClickGuiScreen implements ScreenBackend.ClientScreen {
 
 		Theme theme = this.client.themes().current();
 		float appear = this.open.value();
-		Ui ui = new Ui(renderer, theme, mouseX, mouseY, appear);
+		this.controls.begin(mouseX, mouseY);
+		Ui ui = new Ui(renderer, theme, mouseX, mouseY, appear, this.controls);
 		ui.rect(0.0F, 0.0F, this.width, this.height, Colors.withAlpha(theme.background(), 120));
 
 		// Everything slides up a little as it fades in.
@@ -103,9 +105,8 @@ public final class ClickGuiScreen implements ScreenBackend.ClientScreen {
 
 		this.hint = "";
 		Predicate<Module> filter = this.filter();
-		Panel top = this.panelAt(mouseX, mouseY);
 		for (Panel panel : this.panels) {
-			panel.render(ui, filter, panel == top || top == null);
+			panel.render(ui, filter);
 		}
 
 		// Status line: what the thing under the cursor does. The last hint stays while it fades out.
@@ -122,19 +123,26 @@ public final class ClickGuiScreen implements ScreenBackend.ClientScreen {
 		for (int i = 0; i < presets.size(); i++) {
 			Theme preset = this.client.themes().preset(presets.get(i));
 			float dx = this.dotX(i, presets.size());
-			boolean active = presets.get(i).equals(this.client.themes().presetId()) && this.client.themes().customAccent() == null;
-			if (ui.hovering(dx - 2.0F, barY - 1.0F, DOT + 4.0F, DOT + 4.0F)) {
+			String presetId = presets.get(i);
+			boolean active = presetId.equals(this.client.themes().presetId()) && this.client.themes().customAccent() == null;
+			// The active preset's dot does nothing when clicked, so it counts as disabled; it wears a ring instead of fading.
+			Controls.State dot = this.controls.register("theme:" + presetId, Controls.Kind.BUTTON, dx - 2.0F, barY - 1.0F, DOT + 4.0F, DOT + 4.0F,
+				!active, () -> this.client.themes().presetId() + "/" + this.client.themes().customAccent(), null);
+			if (dot.hovered()) {
 				this.shownHint = "Theme: " + preset.name();
 				ui.shadow(dx, barY + 1.0F, DOT, DOT, DOT / 2.0F, 4.0F, Colors.withAlpha(preset.accent(), 170));
 			}
 
-			ui.rounded(dx, barY + 1.0F, DOT, DOT, DOT / 2.0F, preset.accent());
+			float size = dot.pressed() ? DOT - 2.0F : DOT;
+			float inset = (DOT - size) / 2.0F;
+			ui.rounded(dx + inset, barY + 1.0F + inset, size, size, size / 2.0F, preset.accent());
 			if (active) {
 				ui.outline(dx - 2.0F, barY - 1.0F, DOT + 4.0F, DOT + 4.0F, (DOT + 4.0F) / 2.0F, 1.0F, theme.text());
 			}
 		}
 
 		renderer.pop();
+		this.controls.end();
 		this.renderMicros += ((System.nanoTime() - started) / 1000.0 - this.renderMicros) * 0.1;
 	}
 
@@ -159,8 +167,9 @@ public final class ClickGuiScreen implements ScreenBackend.ClientScreen {
 
 	@Override
 	public boolean mouseDown(float x, float y, MouseButton button) {
-		// A click anywhere ends whatever was being typed or recorded; the thing clicked then takes focus itself.
-		this.panels.forEach(Panel::blur);
+		// A click ends whatever was being typed, recorded or left open elsewhere; the thing clicked keeps its state.
+		this.controls.press(x, y);
+		this.panels.forEach(panel -> panel.blurExcept(x, y));
 		this.search.setFocused(button == MouseButton.LEFT && this.search.contains(x, y));
 		if (this.search.isFocused()) {
 			return true;
@@ -187,6 +196,7 @@ public final class ClickGuiScreen implements ScreenBackend.ClientScreen {
 
 	@Override
 	public void mouseUp(float x, float y, MouseButton button) {
+		this.controls.release();
 		for (Panel panel : this.panels) {
 			boolean wasDragging = panel.isDragging();
 			panel.mouseUp();
@@ -251,6 +261,11 @@ public final class ClickGuiScreen implements ScreenBackend.ClientScreen {
 	/** Smoothed time the screen takes to lay out and submit one frame, in microseconds. */
 	public double renderMicros() {
 		return this.renderMicros;
+	}
+
+	/** The controls of the last frame: for diagnostics and the click-everything tests. */
+	public Controls controls() {
+		return this.controls;
 	}
 
 	// For tests.

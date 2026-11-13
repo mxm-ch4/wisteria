@@ -22,6 +22,8 @@ import java.util.function.Predicate;
 final class Panel {
 	static final float WIDTH = 118.0F;
 	static final float HEADER = 22.0F;
+	/** Width of the fold arrow's click zone at the right end of the header. */
+	static final float ARROW = 20.0F;
 	private static final float BOTTOM_PADDING = 4.0F;
 
 	private final Category category;
@@ -81,7 +83,7 @@ final class Panel {
 	 * @param filter which modules to list (the search box)
 	 * @param interactive false while another panel is on top of this one under the cursor
 	 */
-	void render(Ui ui, Predicate<Module> filter, boolean interactive) {
+	void render(Ui ui, Predicate<Module> filter) {
 		Theme theme = ui.theme();
 		float screenWidth = ui.renderer().width();
 		float screenHeight = ui.renderer().height();
@@ -109,29 +111,45 @@ final class Panel {
 		this.scroll.animateTo(this.scrollTarget);
 		float offset = this.scroll.value();
 
+		String id = "panel:" + this.category.name().toLowerCase(java.util.Locale.ROOT);
+		Controls controls = ui.controls();
+		Controls.State header = controls.register(id, Controls.Kind.HEADER, this.x, this.y, WIDTH - ARROW, HEADER,
+			() -> this.collapsed ? "folded" : "open");
+		Controls.State arrow = controls.register("fold:" + this.category.name().toLowerCase(java.util.Locale.ROOT), Controls.Kind.TOGGLE,
+			this.x + WIDTH - ARROW, this.y, ARROW, HEADER, () -> this.collapsed ? "folded" : "open");
 		float height = HEADER + this.bodyHeight;
 		ui.shadow(this.x, this.y + 3.0F, WIDTH, height, Radius.L, 14.0F, Colors.withAlpha(theme.shadow(), 130));
 		ui.rounded(this.x, this.y, WIDTH, height, Radius.L, Colors.withAlpha(theme.surface(), 244));
-		ui.outline(this.x, this.y, WIDTH, height, Radius.L, Stroke.HAIRLINE, theme.outline());
+		ui.outline(this.x, this.y, WIDTH, height, Radius.L, this.dragging ? Stroke.FOCUS : Stroke.HAIRLINE,
+			this.dragging ? theme.accent() : header.hovered() ? Colors.lighten(theme.outline(), 0.2F) : theme.outline());
 
 		ui.textInRow(Type.LABEL, this.category.title(), this.x + 10.0F, this.y, HEADER, theme.text());
 		long active = visible.stream().filter(row -> row.module().isEnabled()).count();
 		String count = active + "/" + visible.size();
-		ui.textRightInRow(Type.MONO, count, this.x + WIDTH - 20.0F, this.y, HEADER, active > 0 ? theme.accent() : theme.textDisabled());
-		ui.chevron(this.x + WIDTH - 10.0F, this.y + HEADER / 2.0F, 4.0F, open * (float)(Math.PI / 2.0), theme.textMuted());
+		ui.textRightInRow(Type.MONO, count, this.x + WIDTH - ARROW - 2.0F, this.y, HEADER, active > 0 ? theme.accent() : theme.textDisabled());
+		if (arrow.hovered() || arrow.pressed()) {
+			ui.rounded(this.x + WIDTH - ARROW + 2.0F, this.y + 3.0F, ARROW - 6.0F, HEADER - 6.0F, Radius.S, Ui.stateColor(theme.raised(), arrow));
+		}
+
+		ui.chevron(this.x + WIDTH - ARROW / 2.0F - 1.0F, this.y + HEADER / 2.0F, 4.0F, open * (float)(Math.PI / 2.0),
+			arrow.hovered() ? theme.text() : theme.textMuted());
 		if (this.bodyHeight <= 0.5F) {
 			return;
 		}
 
 		ui.rect(this.x + 8.0F, this.y + HEADER - 0.5F, WIDTH - 16.0F, Stroke.HAIRLINE, Colors.fade(theme.outline(), open));
 		ui.renderer().pushScissor(this.x, this.y + HEADER, WIDTH, this.bodyHeight);
-		Ui body = new Ui(ui.renderer(), theme, ui.mouseX(), ui.mouseY(), ui.opacity() * open);
-		boolean inBody = interactive && !this.collapsed && ui.hovering(this.x, this.y + HEADER, WIDTH, this.bodyHeight);
+		Ui body = ui.faded(open);
+		controls.pushGroup(id);
+		controls.pushClip(this.x, this.y + HEADER, WIDTH, this.collapsed ? 0.0F : this.bodyHeight);
 		float rowY = this.y + HEADER + 1.0F - offset;
 		for (ModuleRow row : visible) {
-			row.render(body, this.x, rowY, WIDTH, inBody);
+			row.render(body, this.x, rowY, WIDTH);
 			rowY += row.height();
 		}
+
+		controls.popClip();
+		controls.popGroup();
 
 		ui.renderer().popScissor();
 
@@ -150,7 +168,12 @@ final class Panel {
 		}
 
 		if (py < this.y + HEADER) {
-			if (button == MouseButton.LEFT) {
+			if (button == MouseButton.LEFT && px >= this.x + WIDTH - ARROW) {
+				this.collapsed = !this.collapsed;
+				if (this.collapsed) {
+					this.blur();
+				}
+			} else if (button == MouseButton.LEFT) {
 				this.dragging = true;
 				this.grabX = px - this.x;
 				this.grabY = py - this.y;
@@ -209,5 +232,9 @@ final class Panel {
 
 	void blur() {
 		this.rows.forEach(ModuleRow::blur);
+	}
+
+	void blurExcept(float px, float py) {
+		this.rows.forEach(row -> row.blurExcept(px, py));
 	}
 }

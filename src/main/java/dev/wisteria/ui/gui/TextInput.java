@@ -12,6 +12,7 @@ import java.util.function.Consumer;
 
 /** A one-line text field. The caret sits at the end: enough for search, names and hex colours. */
 public final class TextInput {
+	private String id;
 	private final int maxLength;
 	private final String placeholder;
 	private final Animation focus = new Animation(0.0F, Animation.FAST, Easing.OUT_CUBIC);
@@ -26,7 +27,9 @@ public final class TextInput {
 	private float width;
 	private float height;
 
-	public TextInput(String placeholder, int maxLength) {
+	/** @param id control id, unique on the screen */
+	public TextInput(String id, String placeholder, int maxLength) {
+		this.id = id;
 		this.placeholder = placeholder;
 		this.maxLength = maxLength;
 	}
@@ -41,6 +44,11 @@ public final class TextInput {
 	public TextInput onCommit(Consumer<String> listener) {
 		this.onCommit = listener;
 		return this;
+	}
+
+	/** For inputs inside rows whose id is only known later. */
+	public void setId(String id) {
+		this.id = id;
 	}
 
 	public String text() {
@@ -68,7 +76,17 @@ public final class TextInput {
 		return Ui.inside(px, py, this.x, this.y, this.width, this.height);
 	}
 
+	/** Draws it without registering a control: for an input that is fading out and cannot be clicked. */
+	public void renderWithoutControl(Ui ui, float x, float y, float width, float height, float radius, Type style) {
+		this.draw(ui, x, y, width, height, radius, style, Controls.State.IDLE);
+	}
+
 	public void render(Ui ui, float x, float y, float width, float height, float radius, Type style) {
+		Controls.State state = ui.controls().register(this.id, Controls.Kind.FIELD, x, y, width, height, () -> this.focused ? "focused" : "idle");
+		this.draw(ui, x, y, width, height, radius, style, state);
+	}
+
+	private void draw(Ui ui, float x, float y, float width, float height, float radius, Type style, Controls.State state) {
 		this.x = x;
 		this.y = y;
 		this.width = width;
@@ -76,8 +94,9 @@ public final class TextInput {
 		Theme theme = ui.theme();
 		this.focus.animateTo(this.focused);
 		float lit = this.focus.value();
-		ui.rounded(x, y, width, height, radius, theme.raised());
-		ui.outline(x, y, width, height, radius, Stroke.HAIRLINE, Colors.mix(theme.outline(), theme.accent(), lit));
+		ui.rounded(x, y, width, height, radius, Ui.stateColor(theme.raised(), state));
+		ui.outline(x, y, width, height, radius, Stroke.HAIRLINE,
+			Colors.mix(state.hovered() ? Colors.lighten(theme.outline(), 0.25F) : theme.outline(), theme.accent(), lit));
 
 		float padding = Math.max(4.0F, radius * 0.8F);
 		float room = width - 2.0F * padding;

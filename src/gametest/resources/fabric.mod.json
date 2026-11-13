@@ -9,6 +9,8 @@
 	"entrypoints": {
 		"fabric-client-gametest": [
 			"dev.wisteria.gate.GateTest",
+			"dev.wisteria.gate.TextQualityGameTest",
+			"dev.wisteria.gate.ClickEverythingGameTest",
 			"dev.wisteria.gate.modules.FullBrightGameTest"
 		]
 	},

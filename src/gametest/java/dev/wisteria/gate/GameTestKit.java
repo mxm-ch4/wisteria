@@ -123,6 +123,42 @@ public final class GameTestKit {
 			return n == 0 ? 0 : (int)(sum / n);
 		}
 
+		/**
+		 * Share of horizontal ink edges in a region that jump straight from background to full ink with no
+		 * in-between pixel. Smoothly rasterised text stays well below 0.3; text sampled with NEAREST scores about 0.5.
+		 */
+		public double hardEdgeShare(int x0, int y0, int w, int h) {
+			int[] values = new int[w * h];
+			int n = 0;
+			for (int y = y0; y < y0 + h; y++) {
+				for (int x = x0; x < x0 + w; x++) {
+					values[n++] = luminance(this.at(x, y));
+				}
+			}
+
+			int[] sorted = values.clone();
+			java.util.Arrays.sort(sorted);
+			double background = sorted[sorted.length / 10];
+			double ink = sorted[Math.min(sorted.length - 1, sorted.length * 995 / 1000)];
+			double range = Math.max(1.0, ink - background);
+			int hard = 0;
+			int edges = 0;
+			for (int y = 0; y < h; y++) {
+				for (int x = 1; x < w; x++) {
+					double left = (values[y * w + x - 1] - background) / range;
+					double right = (values[y * w + x] - background) / range;
+					if (Math.abs(right - left) > 0.12) {
+						edges++;
+						if (Math.min(left, right) < 0.12 && Math.max(left, right) > 0.88) {
+							hard++;
+						}
+					}
+				}
+			}
+
+			return edges == 0 ? 0.0 : (double)hard / edges;
+		}
+
 		public int count(int x0, int y0, int w, int h, java.util.function.IntPredicate test) {
 			int matches = 0;
 			for (int y = Math.max(0, y0); y < Math.min(this.height, y0 + h); y++) {

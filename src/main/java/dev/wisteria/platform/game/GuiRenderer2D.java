@@ -2,6 +2,12 @@ package dev.wisteria.platform.game;
 
 import dev.wisteria.render.FontFace;
 import dev.wisteria.render.Renderer2D;
+import dev.wisteria.ui.Metrics;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import net.minecraft.client.gui.render.TextureSetup;
 import java.util.ArrayDeque;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
@@ -12,6 +18,9 @@ import org.jspecify.annotations.Nullable;
 
 /** {@link Renderer2D} on top of the game's GUI extractor: every call adds elements to the frame's GUI state. */
 final class GuiRenderer2D implements Renderer2D {
+	/** Shared by every frame: glyph atlases live as long as the game. */
+	private static final TextRenderer TEXT = new TextRenderer();
+
 	private final GamePlatform platform;
 	private final GuiGraphicsExtractor graphics;
 	private final Font font;
@@ -117,23 +126,54 @@ final class GuiRenderer2D implements Renderer2D {
 
 	@Override
 	public void text(FontFace face, float size, String text, float x, float y, int argb) {
-		// The font is rasterised at Fonts.BASE_SIZE (times its oversample); other sizes are a transform away.
-		float scale = size / Fonts.BASE_SIZE;
-		this.graphics.pose().pushMatrix();
-		this.graphics.pose().translate(x, y + Fonts.topOffset(face, size));
-		this.graphics.pose().scale(scale, scale);
-		this.graphics.text(this.font, Fonts.styled(face, text), 0, 0, argb, false);
-		this.graphics.pose().popMatrix();
+		if (text.isEmpty() || (argb >>> 24) == 0) {
+			return;
+		}
+
+		Matrix3x2f pose = this.pose();
+		// Screen pixels per GUI unit here: the window's GUI scale times whatever scale the transform adds.
+		float transformScale = (float)Math.sqrt(pose.m00() * pose.m00() + pose.m01() * pose.m01());
+		float pixelsPerUnit = Minecraft.getInstance().getWindow().getGuiScale() * Math.max(0.01F, transformScale);
+		List<TextRenderer.Quad> quads = TEXT.layout(face, size, text, x, y, pixelsPerUnit);
+		if (quads.isEmpty()) {
+			return;
+		}
+
+		float x0 = Float.MAX_VALUE;
+		float y0 = Float.MAX_VALUE;
+		float x1 = -Float.MAX_VALUE;
+		float y1 = -Float.MAX_VALUE;
+		for (TextRenderer.Quad quad : quads) {
+			x0 = Math.min(x0, quad.x0());
+			y0 = Math.min(y0, quad.y0());
+			x1 = Math.max(x1, quad.x1());
+			y1 = Math.max(y1, quad.y1());
+		}
+
+		ScreenRectangle scissor = this.scissor();
+		ScreenRectangle area = new ScreenRectangle((int)Math.floor(x0), (int)Math.floor(y0),
+			(int)Math.ceil(x1 - Math.floor(x0)) + 1, (int)Math.ceil(y1 - Math.floor(y0)) + 1).transformMaxBounds(pose);
+		ScreenRectangle bounds = scissor != null ? scissor.intersection(area) : area;
+		// One element per atlas page the line touches; almost always just one.
+		Map<TextRenderer.Page, List<TextRenderer.Quad>> byPage = new LinkedHashMap<>();
+		for (TextRenderer.Quad quad : quads) {
+			byPage.computeIfAbsent(quad.page(), page -> new ArrayList<>()).add(quad);
+		}
+
+		for (Map.Entry<TextRenderer.Page, List<TextRenderer.Quad>> entry : byPage.entrySet()) {
+			TextureSetup setup = TextureSetup.singleTexture(entry.getKey().texture.getTextureView(), TEXT.sampler());
+			this.graphics.guiRenderState.addGuiElement(new TextState(pose, entry.getValue(), argb, setup, scissor, bounds));
+		}
 	}
 
 	@Override
 	public float textWidth(FontFace face, float size, String text) {
-		return this.font.width(Fonts.styled(face, text)) * size / Fonts.BASE_SIZE;
+		return TEXT.width(face, size, text);
 	}
 
 	@Override
 	public float lineHeight(FontFace face, float size) {
-		return Fonts.lineHeight(size);
+		return size * Metrics.Text.LINE_HEIGHT;
 	}
 
 	@Override

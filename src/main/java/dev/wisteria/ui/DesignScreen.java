@@ -7,6 +7,8 @@ import dev.wisteria.ui.Metrics.Radius;
 import dev.wisteria.ui.Metrics.Space;
 import dev.wisteria.ui.Metrics.Stroke;
 import dev.wisteria.ui.Metrics.Type;
+import dev.wisteria.ui.gui.Controls;
+import dev.wisteria.ui.gui.Ui;
 import java.util.Locale;
 
 /**
@@ -23,12 +25,55 @@ public final class DesignScreen implements ScreenBackend.ClientScreen {
 	private final Animation open = new Animation(0.0F, Animation.SLOW, Easing.OUT_QUINT);
 	private final Animation hover = new Animation(0.0F, Animation.FAST, Easing.OUT_CUBIC);
 	private final Animation toggle = new Animation(0.0F, Animation.NORMAL, Easing.OUT_BACK);
-	private final Animation slider = new Animation(0.25F, Animation.SLOW, Easing.IN_OUT_CUBIC);
+	private final Animation slider = new Animation(0.25F, Animation.FAST, Easing.OUT_CUBIC);
+	private final Animation primaryLift = new Animation(0.0F, Animation.FAST, Easing.OUT_CUBIC);
 	private final long openedAt = System.nanoTime();
+	private final Controls controls = new Controls();
+	private boolean toggleOn;
+	private float sliderValue = 0.25F;
+	private boolean dragging;
+	private int primaryClicks;
+	private int secondaryClicks;
+	private float sliderX;
+	private float sliderWidth = 116.0F;
 
 	public DesignScreen(Client client) {
 		this.client = client;
 		this.open.animateTo(1.0F);
+	}
+
+	@Override
+	public boolean mouseDown(float x, float y, ScreenBackend.MouseButton button) {
+		this.controls.press(x, y);
+		Controls.Control control = this.controls.at(x, y);
+		if (button != ScreenBackend.MouseButton.LEFT || control == null || !control.enabled()) {
+			return control != null;
+		}
+
+		switch (control.id()) {
+			case "design:primary" -> this.primaryClicks++;
+			case "design:secondary" -> this.secondaryClicks++;
+			case "design:toggle" -> this.toggleOn = !this.toggleOn;
+			case "design:slider" -> {
+				this.dragging = true;
+				this.sliderValue = Math.max(0.0F, Math.min(1.0F, (x - this.sliderX) / this.sliderWidth));
+			}
+			default -> {
+			}
+		}
+
+		return true;
+	}
+
+	@Override
+	public void mouseUp(float x, float y, ScreenBackend.MouseButton button) {
+		this.controls.release();
+		this.dragging = false;
+	}
+
+	/** The controls of the last frame: for the click-everything tests. */
+	public Controls controls() {
+		return this.controls;
 	}
 
 	@Override
@@ -43,12 +88,13 @@ public final class DesignScreen implements ScreenBackend.ClientScreen {
 		float x = Math.round((renderer.width() - WIDTH) / 2.0F);
 		float y = Math.round((renderer.height() - HEIGHT) / 2.0F) + (1.0F - appear) * 10.0F;
 
-		// The demo drives itself: every cycle the toggle flips and the slider crosses over.
+		// Only the motion curves run on their own; the controls respond to the mouse.
 		long elapsed = System.nanoTime() - this.openedAt;
-		boolean phase = (elapsed / CYCLE_NANOS) % 2L == 1L;
-		this.toggle.animateTo(phase);
-		this.slider.animateTo(phase ? 0.8F : 0.25F);
 		float loop = Math.min(1.0F, (float)(elapsed % CYCLE_NANOS) / (CYCLE_NANOS * 0.6F));
+		this.controls.begin(mouseX, mouseY);
+		if (this.dragging) {
+			this.sliderValue = Math.max(0.0F, Math.min(1.0F, (mouseX - this.sliderX) / this.sliderWidth));
+		}
 
 		Painter paint = new Painter(renderer, appear);
 		paint.shadow(x, y + 4.0F, WIDTH, HEIGHT, Radius.L, 18.0F, Colors.withAlpha(theme.shadow(), 150));
@@ -65,6 +111,7 @@ public final class DesignScreen implements ScreenBackend.ClientScreen {
 		this.palette(paint, theme, x + Space.M, top);
 		this.type(paint, theme, x + 148.0F, top);
 		this.controls(paint, renderer, theme, x + 280.0F, top, mouseX, mouseY, loop);
+		this.controls.end();
 	}
 
 	private void palette(Painter paint, Theme theme, float x, float y) {
@@ -131,40 +178,63 @@ public final class DesignScreen implements ScreenBackend.ClientScreen {
 	private void controls(Painter paint, Renderer2D renderer, Theme theme, float x, float y, float mouseX, float mouseY, float loop) {
 		paint.text(Type.LABEL, "Controls", x, y, theme.text());
 
-		// Buttons: primary reacts to the cursor, then a resting secondary and a disabled one.
+		// Buttons: primary and secondary count clicks; the third is disabled and must ignore them.
 		float by = y + 16.0F;
-		boolean hovered = mouseX >= x && mouseX <= x + 46.0F && mouseY >= by && mouseY <= by + 16.0F;
-		this.hover.animateTo(hovered);
-		float lift = this.hover.value();
+		Controls.State primary = this.controls.register("design:primary", Controls.Kind.BUTTON, x, by, 46.0F, 16.0F,
+			() -> Integer.toString(this.primaryClicks));
+		Controls.State secondary = this.controls.register("design:secondary", Controls.Kind.BUTTON, x + 50.0F, by, 34.0F, 16.0F,
+			() -> Integer.toString(this.secondaryClicks));
+		Controls.State disabled = this.controls.register("design:disabled", Controls.Kind.BUTTON, x + 88.0F, by, 28.0F, 16.0F, false,
+			() -> "never", null);
+		this.primaryLift.animateTo(primary.hovered() ? 1.0F : 0.0F);
+		float lift = this.primaryLift.value();
 		paint.shadow(x, by, 46.0F, 16.0F, Radius.M, 6.0F, Colors.withAlpha(theme.accent(), Math.round(70.0F + 110.0F * lift)));
-		paint.rounded(x, by, 46.0F, 16.0F, Radius.M, Colors.mix(theme.accent(), theme.accentHover(), lift));
+		int primaryFill = primary.pressed() ? theme.accentPressed() : Colors.mix(theme.accent(), theme.accentHover(), lift);
+		paint.rounded(x, by, 46.0F, 16.0F, Radius.M, primaryFill);
 		this.centred(paint, renderer, Type.LABEL, "Primary", x, by, 46.0F, 16.0F, theme.onAccent());
 
-		paint.rounded(x + 50.0F, by, 34.0F, 16.0F, Radius.M, theme.raised());
-		paint.outline(x + 50.0F, by, 34.0F, 16.0F, Radius.M, Stroke.HAIRLINE, theme.outline());
+		paint.rounded(x + 50.0F, by, 34.0F, 16.0F, Radius.M, Ui.stateColor(theme.raised(), secondary));
+		paint.outline(x + 50.0F, by, 34.0F, 16.0F, Radius.M, Stroke.HAIRLINE, secondary.hovered() ? theme.textMuted() : theme.outline());
 		this.centred(paint, renderer, Type.LABEL, "Rest", x + 50.0F, by, 34.0F, 16.0F, theme.text());
 
-		paint.rounded(x + 88.0F, by, 28.0F, 16.0F, Radius.M, Colors.withAlpha(theme.raised(), 130));
+		paint.rounded(x + 88.0F, by, 28.0F, 16.0F, Radius.M, Ui.stateColor(theme.raised(), disabled));
 		this.centred(paint, renderer, Type.LABEL, "Off", x + 88.0F, by, 28.0F, 16.0F, theme.textDisabled());
 
 		// Toggle: the knob overshoots slightly (OUT_BACK), the track cross-fades.
 		float ty = by + 26.0F;
+		Controls.State toggleState = this.controls.register("design:toggle", Controls.Kind.TOGGLE, x, ty - 2.0F, 116.0F, 16.0F,
+			() -> this.toggleOn ? "on" : "off");
+		this.toggle.animateTo(this.toggleOn);
 		float on = this.toggle.value();
 		float settled = Math.max(0.0F, Math.min(1.0F, on));
-		paint.text(Type.BODY, "Toggle", x, ty, theme.text());
-		paint.rounded(x + 92.0F, ty, 24.0F, 12.0F, Radius.pill(12.0F), Colors.mix(theme.raised(), theme.accent(), settled));
+		paint.text(Type.BODY, "Toggle", x, ty, toggleState.hovered() ? theme.text() : theme.textMuted());
+		paint.rounded(x + 92.0F, ty, 24.0F, 12.0F, Radius.pill(12.0F), Ui.stateColor(Colors.mix(theme.raised(), theme.accent(), settled), toggleState));
 		paint.outline(x + 92.0F, ty, 24.0F, 12.0F, Radius.pill(12.0F), Stroke.HAIRLINE, Colors.mix(theme.outline(), theme.accent(), settled));
-		paint.rounded(x + 94.0F + on * 12.0F, ty + 2.0F, 8.0F, 8.0F, 4.0F, Colors.mix(theme.textMuted(), theme.onAccent(), settled));
+		float knob = toggleState.pressed() ? 7.0F : 8.0F;
+		paint.rounded(x + 94.0F + (8.0F - knob) / 2.0F + on * 12.0F, ty + 2.0F + (8.0F - knob) / 2.0F, knob, knob, knob / 2.0F,
+			Colors.mix(theme.textMuted(), theme.onAccent(), settled));
 
-		// Slider
+		// Slider: click or drag anywhere on the track.
 		float sy = ty + 22.0F;
+		this.sliderX = x;
+		Controls.State sliderState = this.controls.register("design:slider", Controls.Kind.SLIDER, x, sy + 10.0F, 116.0F, 14.0F,
+			() -> String.format(Locale.ROOT, "%.3f", this.sliderValue));
+		if (this.dragging) {
+			this.slider.snapTo(this.sliderValue);
+		} else {
+			this.slider.animateTo(this.sliderValue);
+		}
+
 		float value = this.slider.value();
 		String number = String.format(Locale.ROOT, "%.1f", 8.0F + value * 248.0F);
-		paint.text(Type.BODY, "Range", x, sy, theme.text());
+		paint.text(Type.BODY, "Range", x, sy, sliderState.hovered() || this.dragging ? theme.text() : theme.textMuted());
 		paint.text(Type.MONO, number, x + 116.0F - Type.MONO.width(renderer, number), sy + 1.0F, theme.textMuted());
 		paint.rounded(x, sy + 16.0F, 116.0F, 4.0F, 2.0F, theme.raised());
 		paint.gradient(x, sy + 16.0F, 116.0F * value, 4.0F, 2.0F, theme.accentPressed(), theme.accent());
-		paint.shadow(x + 116.0F * value - 4.0F, sy + 14.0F, 8.0F, 8.0F, 4.0F, 4.0F, Colors.withAlpha(theme.accent(), 150));
+		if (sliderState.hovered() || this.dragging) {
+			paint.shadow(x + 116.0F * value - 4.0F, sy + 14.0F, 8.0F, 8.0F, 4.0F, this.dragging ? 6.0F : 4.0F, Colors.withAlpha(theme.accent(), 160));
+		}
+
 		paint.rounded(x + 116.0F * value - 4.0F, sy + 14.0F, 8.0F, 8.0F, 4.0F, theme.text());
 
 		// Motion: the same 0..1 progress through three curves.

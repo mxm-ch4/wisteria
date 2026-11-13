@@ -10,6 +10,7 @@ import dev.wisteria.setting.ColorSetting;
 import dev.wisteria.setting.EnumSetting;
 import dev.wisteria.setting.FloatSetting;
 import dev.wisteria.setting.StringSetting;
+import dev.wisteria.ui.Metrics.Type;
 
 /**
  * The client's name in a corner of the screen. A plain stand-in until the HUD stage brings draggable
@@ -39,10 +40,10 @@ public final class Watermark extends Module {
 			label = label + "  " + this.client().platform().minecraftVersion();
 		}
 
-		float size = this.scale.get();
-		float padding = this.background.get() ? 5.0F : 0.0F;
-		float width = renderer.textWidth(label) * size + padding * 2.0F;
-		float height = (renderer.lineHeight() - 1.0F) * size + padding * 2.0F;
+		float size = Type.LABEL.size() * this.scale.get();
+		float padding = this.background.get() ? 5.0F * this.scale.get() : 0.0F;
+		float width = renderer.textWidth(Type.LABEL.face(), size, label) + padding * 2.0F;
+		float height = renderer.lineHeight(Type.LABEL.face(), size) + padding * 2.0F;
 		float margin = 6.0F;
 		Corner where = this.corner.get();
 		boolean right = where == Corner.TOP_RIGHT || where == Corner.BOTTOM_RIGHT;
@@ -51,13 +52,9 @@ public final class Watermark extends Module {
 		float y = bottom ? renderer.height() - height - margin : margin;
 
 		if (this.background.get()) {
-			renderer.roundedRect(x, y, width, height, 5.0F, 0xD917131F);
+			renderer.roundedRect(x, y, width, height, Math.min(height / 2.0F, 6.0F), 0xD917131F);
 		}
 
-		renderer.push();
-		renderer.translate(x + padding, y + padding);
-		renderer.scale(size, size);
-		renderer.text(label, 0.0F, 0.0F, this.color.get(), false);
-		renderer.pop();
+		renderer.text(Type.LABEL.face(), size, label, x + padding, y + padding, this.color.get());
 	}
 }

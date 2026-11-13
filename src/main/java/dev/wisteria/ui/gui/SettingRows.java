@@ -68,15 +68,19 @@ final class SettingRows {
 		@Override
 		void render(Ui ui) {
 			Theme theme = ui.theme();
+			Controls.State control = ui.controls().register(this.id, Controls.Kind.TOGGLE, this.x, this.y, this.width, HEIGHT, this.setting::format);
 			this.state.animateTo(this.setting.get());
 			float on = this.state.value();
 			float settled = Math.max(0.0F, Math.min(1.0F, on));
-			ui.textInRow(Type.CAPTION, this.label(), this.x, this.y, HEIGHT, Colors.mix(theme.textMuted(), theme.text(), settled));
+			ui.textInRow(Type.CAPTION, this.label(), this.x, this.y, HEIGHT,
+				control.hovered() ? theme.text() : Colors.mix(theme.textMuted(), theme.text(), settled));
 			float tx = this.x + this.width - 18.0F;
 			float ty = this.y + 3.0F;
-			ui.rounded(tx, ty, 18.0F, 9.0F, 4.5F, Colors.mix(theme.raised(), theme.accent(), settled));
-			ui.outline(tx, ty, 18.0F, 9.0F, 4.5F, Stroke.HAIRLINE, Colors.mix(theme.outline(), theme.accent(), settled));
-			ui.rounded(tx + 2.0F + on * 9.0F, ty + 2.0F, 5.0F, 5.0F, 2.5F, Colors.mix(theme.textMuted(), theme.onAccent(), settled));
+			ui.rounded(tx, ty, 18.0F, 9.0F, 4.5F, Ui.stateColor(Colors.mix(theme.raised(), theme.accent(), settled), control));
+			ui.outline(tx, ty, 18.0F, 9.0F, 4.5F, Stroke.HAIRLINE, Colors.mix(control.hovered() ? theme.textMuted() : theme.outline(), theme.accent(), settled));
+			float knob = control.pressed() ? 4.0F : 5.0F;
+			float inset = (5.0F - knob) / 2.0F;
+			ui.rounded(tx + 2.0F + inset + on * 9.0F, ty + 2.0F + inset, knob, knob, knob / 2.0F, Colors.mix(theme.textMuted(), theme.onAccent(), settled));
 		}
 
 		@Override
@@ -122,17 +126,19 @@ final class SettingRows {
 			}
 
 			float fraction = this.shown.value();
-			ui.textInRow(Type.CAPTION, this.label(), this.x, this.y, 14.0F, theme.textMuted());
+			Controls.State control = ui.controls().register(this.id, Controls.Kind.SLIDER, this.x, this.y, this.width, SLIDER_HEIGHT, this.setting::format);
+			ui.textInRow(Type.CAPTION, this.label(), this.x, this.y, 14.0F, control.hovered() || this.dragging ? theme.text() : theme.textMuted());
 			ui.textRightInRow(Type.MONO, this.setting.format(), this.x + this.width, this.y, 14.0F, theme.text());
 			float ty = this.y + 16.0F;
 			ui.rounded(this.x, ty, this.width, 3.0F, 1.5F, theme.raised());
 			ui.horizontalGradient(this.x, ty, this.width * fraction, 3.0F, 1.5F, theme.accentPressed(), theme.accent());
 			float thumbX = this.x + this.width * fraction;
-			if (this.dragging || ui.hovering(this.x, this.y, this.width, SLIDER_HEIGHT)) {
-				ui.shadow(thumbX - 3.5F, ty - 2.0F, 7.0F, 7.0F, 3.5F, 4.0F, Colors.withAlpha(theme.accent(), 160));
+			if (this.dragging || control.hovered()) {
+				ui.shadow(thumbX - 3.5F, ty - 2.0F, 7.0F, 7.0F, 3.5F, this.dragging ? 6.0F : 4.0F, Colors.withAlpha(theme.accent(), this.dragging ? 200 : 140));
 			}
 
-			ui.rounded(thumbX - 3.5F, ty - 2.0F, 7.0F, 7.0F, 3.5F, theme.text());
+			float thumb = this.dragging ? 8.0F : 7.0F;
+			ui.rounded(thumbX - thumb / 2.0F, ty + 1.5F - thumb / 2.0F, thumb, thumb, thumb / 2.0F, theme.text());
 		}
 
 		@Override
@@ -183,24 +189,35 @@ final class SettingRows {
 		@Override
 		void render(Ui ui) {
 			Theme theme = ui.theme();
+			Controls.State control = ui.controls().register(this.id, Controls.Kind.DROPDOWN, this.x, this.y, this.width, HEIGHT,
+				() -> this.opened ? "open" : "closed");
 			this.open.animateTo(this.opened);
 			float reveal = this.open.value();
-			ui.textInRow(Type.CAPTION, this.label(), this.x, this.y, HEIGHT, theme.textMuted());
+			if (control.hovered() || control.pressed()) {
+				ui.rounded(this.x - 2.0F, this.y, this.width + 4.0F, HEIGHT, Radius.S, Ui.stateColor(theme.hover(), control));
+			}
+
+			ui.textInRow(Type.CAPTION, this.label(), this.x, this.y, HEIGHT, control.hovered() ? theme.text() : theme.textMuted());
 			float right = this.x + this.width;
-			ui.chevron(right - 4.0F, this.y + HEIGHT / 2.0F, 4.0F, reveal * (float)(Math.PI / 2.0), theme.textMuted());
+			ui.chevron(right - 4.0F, this.y + HEIGHT / 2.0F, 4.0F, reveal * (float)(Math.PI / 2.0), control.hovered() ? theme.text() : theme.textMuted());
 			ui.textRightInRow(Type.CAPTION, this.setting.format(), right - 11.0F, this.y, HEIGHT, theme.text());
 			if (reveal <= 0.01F) {
 				return;
 			}
 
-			Ui list = new Ui(ui.renderer(), theme, ui.mouseX(), ui.mouseY(), ui.opacity() * reveal);
+			Ui list = ui.faded(reveal);
 			String current = this.setting.format();
+			ui.controls().pushGroup(this.id);
 			for (int i = 0; i < this.options.size(); i++) {
 				float oy = this.y + HEIGHT + i * OPTION_HEIGHT * reveal;
 				String option = this.options.get(i);
 				boolean selected = option.equals(current);
-				if (this.opened && ui.hovering(this.x, oy, this.width, OPTION_HEIGHT)) {
-					list.rounded(this.x - 2.0F, oy, this.width + 4.0F, OPTION_HEIGHT, Radius.S, theme.hover());
+				Controls.State optionState = this.opened
+					? ui.controls().register(this.id + ":" + option, Controls.Kind.OPTION, this.x - 2.0F, oy, this.width + 4.0F, OPTION_HEIGHT * reveal,
+						() -> option.equals(this.setting.format()) ? "selected" : "")
+					: Controls.State.IDLE;
+				if (optionState.hovered() || optionState.pressed()) {
+					list.rounded(this.x - 2.0F, oy, this.width + 4.0F, OPTION_HEIGHT, Radius.S, Ui.stateColor(theme.hover(), optionState));
 				}
 
 				if (selected) {
@@ -209,6 +226,8 @@ final class SettingRows {
 
 				list.textInRow(Type.CAPTION, option, this.x + 9.0F, oy, OPTION_HEIGHT, selected ? theme.accent() : theme.text());
 			}
+
+			ui.controls().popGroup();
 		}
 
 		@Override
@@ -260,7 +279,7 @@ final class SettingRows {
 		ColourPicker(ColorSetting setting) {
 			super(setting.name(), setting.description());
 			this.setting = setting;
-			this.hex = new TextInput("#AARRGGBB", 9).onCommit(text -> {
+			this.hex = new TextInput("", "#AARRGGBB", 9).onCommit(text -> {
 				try {
 					this.setting.parse(text);
 				} catch (IllegalArgumentException ignored) {
@@ -340,19 +359,29 @@ final class SettingRows {
 				this.drag(ui.mouseX(), ui.mouseY());
 			}
 
+			Controls.State control = ui.controls().register(this.id, Controls.Kind.EXPANDER, this.x, this.y, this.width, HEIGHT,
+				() -> this.opened ? "open" : "closed");
 			this.open.animateTo(this.opened);
 			float reveal = this.open.value();
 			int colour = this.setting.get();
-			ui.textInRow(Type.CAPTION, this.label(), this.x, this.y, HEIGHT, theme.textMuted());
+			ui.textInRow(Type.CAPTION, this.label(), this.x, this.y, HEIGHT, control.hovered() ? theme.text() : theme.textMuted());
 			float sx = this.x + this.width - 16.0F;
 			ui.rounded(sx, this.y + 3.0F, 16.0F, 9.0F, Radius.S, colour);
-			ui.outline(sx, this.y + 3.0F, 16.0F, 9.0F, Radius.S, Stroke.HAIRLINE, Colors.withAlpha(theme.text(), 60));
+			ui.outline(sx, this.y + 3.0F, 16.0F, 9.0F, Radius.S, control.hovered() || control.pressed() ? Stroke.FOCUS : Stroke.HAIRLINE,
+				control.hovered() || this.opened ? theme.text() : Colors.withAlpha(theme.text(), 60));
 			if (reveal <= 0.01F) {
 				return;
 			}
 
-			Ui picker = new Ui(ui.renderer(), theme, ui.mouseX(), ui.mouseY(), ui.opacity() * reveal);
+			Ui picker = ui.faded(reveal);
 			int pure = Colors.fromHsv(this.hue, 1.0F, 1.0F, 255);
+			if (this.opened) {
+				ui.controls().pushGroup(this.id);
+				ui.controls().register(this.id + ":square", Controls.Kind.AREA, this.x, this.squareY(), this.width, SQUARE, this.setting::format);
+				ui.controls().register(this.id + ":hue", Controls.Kind.SLIDER, this.x, this.hueY() - 1.0F, this.width, BAR + 2.0F, () -> Float.toString(this.hue));
+				ui.controls().register(this.id + ":alpha", Controls.Kind.SLIDER, this.x, this.alphaY() - 1.0F, this.width, BAR + 2.0F, () -> Integer.toString(this.setting.alpha()));
+				this.hex.setId(this.id + ":hex");
+			}
 
 			// Saturation runs left to right, value top to bottom: white-to-hue under a fade to black.
 			float qy = this.squareY();
@@ -381,7 +410,12 @@ final class SettingRows {
 				this.hex.setText(this.setting.format());
 			}
 
-			this.hex.render(picker, this.x, this.fieldY(), this.width, FIELD, Radius.S, Type.MONO);
+			if (this.opened) {
+				this.hex.render(picker, this.x, this.fieldY(), this.width, FIELD, Radius.S, Type.MONO);
+				ui.controls().popGroup();
+			} else {
+				this.hex.renderWithoutControl(picker, this.x, this.fieldY(), this.width, FIELD, Radius.S, Type.MONO);
+			}
 		}
 
 		private void thumb(Ui ui, float centerX, float barY, Theme theme) {
@@ -463,14 +497,17 @@ final class SettingRows {
 		@Override
 		void render(Ui ui) {
 			Theme theme = ui.theme();
+			Controls.State control = ui.controls().register(this.id, Controls.Kind.KEY, this.x, this.y, this.width, HEIGHT,
+				() -> this.listening ? "listening" : "idle");
 			this.listen.animateTo(this.listening);
 			float lit = this.listen.value();
-			ui.textInRow(Type.CAPTION, this.label(), this.x, this.y, HEIGHT, theme.textMuted());
+			ui.textInRow(Type.CAPTION, this.label(), this.x, this.y, HEIGHT, control.hovered() ? theme.text() : theme.textMuted());
 			String shown = this.listening ? "press a key" : this.setting.format().replace('_', ' ');
 			float boxWidth = Math.max(26.0F, Type.MONO.width(ui.renderer(), shown) + 8.0F);
 			float bx = this.x + this.width - boxWidth;
-			ui.rounded(bx, this.y + 2.0F, boxWidth, 11.0F, Radius.S, theme.raised());
-			ui.outline(bx, this.y + 2.0F, boxWidth, 11.0F, Radius.S, Stroke.HAIRLINE, Colors.mix(theme.outline(), theme.accent(), lit));
+			ui.rounded(bx, this.y + 2.0F, boxWidth, 11.0F, Radius.S, Ui.stateColor(theme.raised(), control));
+			ui.outline(bx, this.y + 2.0F, boxWidth, 11.0F, Radius.S, Stroke.HAIRLINE,
+				Colors.mix(control.hovered() ? theme.textMuted() : theme.outline(), theme.accent(), lit));
 			boolean unbound = this.setting.get().isEmpty() && !this.listening;
 			ui.textInRow(Type.MONO, shown, bx + (boxWidth - Type.MONO.width(ui.renderer(), shown)) / 2.0F, this.y + 2.0F, 11.0F,
 				unbound ? theme.textDisabled() : Colors.mix(theme.text(), theme.accent(), lit));
@@ -522,7 +559,7 @@ final class SettingRows {
 		TextField(StringSetting setting) {
 			super(setting.name(), setting.description());
 			this.setting = setting;
-			this.input = new TextInput(setting.defaultValue(), 64).onChange(setting::set);
+			this.input = new TextInput("", setting.defaultValue(), 64).onChange(setting::set);
 		}
 
 		@Override
@@ -532,6 +569,7 @@ final class SettingRows {
 
 		@Override
 		void render(Ui ui) {
+			this.input.setId(this.id);
 			ui.textInRow(Type.CAPTION, this.label(), this.x, this.y, 13.0F, ui.theme().textMuted());
 			if (!this.input.isFocused()) {
 				this.input.setText(this.setting.get());

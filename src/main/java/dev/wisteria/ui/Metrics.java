@@ -44,7 +44,21 @@ public final class Metrics {
 		}
 	}
 
-	/** The type scale. Sizes are em heights; a line is 1.25 em tall. */
+	/** How text is rasterised. The one place to tune text quality for the whole interface. */
+	public static final class Text {
+		/**
+		 * Glyphs are rasterised this many times larger than the screen pixels they cover, then sampled down with
+		 * bilinear filtering. 2 gives smooth, still crisp edges; 1 is sharpest, 3-4 softer and heavier on memory.
+		 */
+		public static final int OVERSAMPLE = 2;
+		/** Line box height in em; the font's ascent and descent are centred in it. */
+		public static final float LINE_HEIGHT = 1.25F;
+
+		private Text() {
+		}
+	}
+
+	/** The type scale. Sizes are em heights; a line is {@link Text#LINE_HEIGHT} em tall. */
 	public enum Type {
 		/** Window and section titles. */
 		TITLE(FontFace.SEMIBOLD, 13.0F),

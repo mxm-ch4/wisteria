@@ -9,7 +9,25 @@ import dev.wisteria.ui.Theme;
  * What a widget needs to draw one frame: the renderer, the active theme, where the cursor is, and an overall
  * opacity (the screen's fade-in) that every colour is multiplied by.
  */
-public record Ui(Renderer2D renderer, Theme theme, float mouseX, float mouseY, float opacity) {
+public record Ui(Renderer2D renderer, Theme theme, float mouseX, float mouseY, float opacity, Controls controls) {
+	/** The same context with everything drawn fainter: for content that is fading in or out. */
+	public Ui faded(float factor) {
+		return new Ui(this.renderer, this.theme, this.mouseX, this.mouseY, this.opacity * factor, this.controls);
+	}
+
+	/** A colour adjusted for a control's state: lighter under the cursor, darker while pressed, faint when disabled. */
+	public static int stateColor(int base, Controls.State state) {
+		if (!state.enabled()) {
+			return Colors.fade(base, 0.45F);
+		}
+
+		if (state.pressed()) {
+			return Colors.darken(base, 0.14F);
+		}
+
+		return state.hovered() ? Colors.lighten(base, 0.1F) : base;
+	}
+
 	public boolean hovering(float x, float y, float width, float height) {
 		return inside(this.mouseX, this.mouseY, x, y, width, height);
 	}

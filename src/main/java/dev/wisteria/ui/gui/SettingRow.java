@@ -8,6 +8,7 @@ import dev.wisteria.platform.ScreenBackend.MouseButton;
 abstract class SettingRow {
 	static final float HEIGHT = 15.0F;
 
+	protected String id = "";
 	private final String label;
 	private final String description;
 	protected float x;
@@ -17,6 +18,11 @@ abstract class SettingRow {
 	protected SettingRow(String label, String description) {
 		this.label = label;
 		this.description = description;
+	}
+
+	/** Gives the row its control id; done by the module row that owns it. */
+	final void assignId(String id) {
+		this.id = id;
 	}
 
 	final String label() {

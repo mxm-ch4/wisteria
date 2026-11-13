@@ -6,7 +6,7 @@
   <img alt="Minecraft 26.1 – 26.3" src="https://img.shields.io/badge/Minecraft-26.1%20–%2026.3-B79CFF?style=flat-square&labelColor=17131F">
   <img alt="Loader: Fabric" src="https://img.shields.io/badge/Loader-Fabric-B79CFF?style=flat-square&labelColor=17131F">
   <img alt="Java 25" src="https://img.shields.io/badge/Java-25-B79CFF?style=flat-square&labelColor=17131F">
-  <img alt="Статус: этап 2 пройден" src="https://img.shields.io/badge/Статус-этап%202%20пройден-8B6CFF?style=flat-square&labelColor=17131F">
+  <img alt="Статус: этап 3 пройден" src="https://img.shields.io/badge/Статус-этап%203%20пройден-8B6CFF?style=flat-square&labelColor=17131F">
   <a href="LICENSE"><img alt="License: GPL-3.0" src="https://img.shields.io/badge/License-GPL--3.0-E9D8FF?style=flat-square&labelColor=17131F"></a>
 </p>
 
@@ -101,8 +101,8 @@ OpenGL ↔ Vulkan, и всё, что написано в обход абстра
 | **0** | Разведка | Рендер, события и звук проверены вживую; сборка под три версии — [находки](docs/stage0-findings.md) | ✅ |
 | **1** | Ядро поверх compat | Модули, настройки, события, конфиги с профилями, чат-команды, друзья/враги — [как устроено](docs/core.md) | ✅ |
 | **2** | Дизайн-система | Темы, шрифты, отступы, движение, эффекты одним шейдером и экран-справочник — [как устроено](docs/design-system.md) | ✅ |
-| **3** | GUI | ClickGUI, компоненты, темы, сплэш | ⏳ следующий |
-| **4** | HUD | `HudManager`, элементы, редактор расположения | — |
+| **3** | GUI | ClickGUI на правый Shift, все контролы настроек, темы, сплэш — [как устроено](docs/gui.md) | ✅ |
+| **4** | HUD | `HudManager`, элементы, редактор расположения | ⏳ следующий |
 | **5** | Музыка | Плеер, HUD-виджет, хоткеи, звуки интерфейса | — |
 | **6** | Флагманы | Xray Quality, BaseFinder Intel, база находок | — |
 | **∥** | Fly Lab и Grim Lab | Режимы полёта как пресеты с самоограничением; авто-журнал флагов античита | — |

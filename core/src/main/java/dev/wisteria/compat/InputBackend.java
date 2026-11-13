@@ -6,6 +6,11 @@ public interface InputBackend {
 
 	void listen(InputListener listener);
 
+	/** The system clipboard as text; empty if it holds something else. */
+	String clipboard();
+
+	void setClipboard(String text);
+
 	enum Action {
 		PRESS, RELEASE, REPEAT
 	}

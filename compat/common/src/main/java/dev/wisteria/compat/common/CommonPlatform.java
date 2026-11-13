@@ -22,6 +22,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.components.ChatComponent;
 import net.minecraft.client.gui.navigation.ScreenRectangle;
 import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.gui.screens.TitleScreen;
 import net.minecraft.client.renderer.state.gui.GuiElementRenderState;
 import net.minecraft.resources.Identifier;
 import org.jspecify.annotations.Nullable;
@@ -41,6 +42,7 @@ public abstract class CommonPlatform implements Platform {
 	private final CommonChat chat = new CommonChat(this);
 	private final CommonWorld world = new CommonWorld();
 	private final CommonVisuals visuals = new CommonVisuals();
+	private boolean titleScreenSeen;
 
 	/** The installed platform, or null before the mod initialises. Mixins go through this. */
 	public static @Nullable CommonPlatform instance() {
@@ -59,6 +61,13 @@ public abstract class CommonPlatform implements Platform {
 		});
 
 		ClientTickEvents.END_CLIENT_TICK.register(minecraft -> {
+			if (!this.titleScreenSeen && this.currentScreen() instanceof TitleScreen) {
+				this.titleScreenSeen = true;
+				for (ClientListener listener : this.listeners) {
+					listener.onTitleScreen();
+				}
+			}
+
 			this.screens.tick();
 			for (ClientListener listener : this.listeners) {
 				listener.onTick();

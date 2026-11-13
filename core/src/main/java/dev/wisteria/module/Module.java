@@ -1,6 +1,7 @@
 package dev.wisteria.module;
 
 import dev.wisteria.Client;
+import dev.wisteria.compat.Key;
 import dev.wisteria.event.EventBus;
 import dev.wisteria.setting.KeySetting;
 import dev.wisteria.setting.Setting;
@@ -23,7 +24,7 @@ public abstract class Module {
 	private final String id;
 	private final String description;
 	private final Category category;
-	private final KeySetting bind = new KeySetting("Bind", "Key that toggles this module");
+	private final KeySetting bind;
 	private final Map<String, Setting<?>> settings = new LinkedHashMap<>();
 	private final List<Handler<?>> handlers = new ArrayList<>();
 	private final List<EventBus.Subscription<?>> subscriptions = new ArrayList<>();
@@ -32,6 +33,14 @@ public abstract class Module {
 	private boolean enabled;
 
 	protected Module(String name, String description, Category category) {
+		this(name, description, category, null);
+	}
+
+	/** @param defaultBind the key the module is bound to until the user changes it; null for none */
+	protected Module(String name, String description, Category category, @Nullable Key defaultBind) {
+		this.bind = defaultBind != null
+			? new KeySetting("Bind", "Key that toggles this module", defaultBind)
+			: new KeySetting("Bind", "Key that toggles this module");
 		this.name = name;
 		this.id = name.toLowerCase(Locale.ROOT).replaceAll("[^a-z0-9]", "");
 		this.description = description;
@@ -95,6 +104,15 @@ public abstract class Module {
 		}
 
 		return current;
+	}
+
+	/** False for modules whose "enabled" is a momentary state, like an open screen: they always start off. */
+	protected boolean remembersEnabled() {
+		return true;
+	}
+
+	public final boolean savesEnabled() {
+		return this.remembersEnabled();
 	}
 
 	protected void onEnable() {

@@ -24,7 +24,35 @@ public interface ScreenBackend {
 
 		void render(Renderer2D renderer, float mouseX, float mouseY, float tickDelta);
 
+		/** @return true if the click landed on something */
+		default boolean mouseDown(float x, float y, MouseButton button) {
+			return false;
+		}
+
+		default void mouseUp(float x, float y, MouseButton button) {
+		}
+
+		/** @param amount positive when scrolling up */
+		default boolean mouseScroll(float x, float y, float amount) {
+			return false;
+		}
+
+		/**
+		 * @return true if the key was used; an unused Escape closes the screen
+		 */
+		default boolean keyDown(Key key, boolean shift, boolean control, boolean alt) {
+			return false;
+		}
+
+		/** Text typed on the keyboard, already composed (layout, dead keys, IME). */
+		default void charTyped(String text) {
+		}
+
 		default void onClose() {
 		}
+	}
+
+	enum MouseButton {
+		LEFT, RIGHT, MIDDLE
 	}
 }

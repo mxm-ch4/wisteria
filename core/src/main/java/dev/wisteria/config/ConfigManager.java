@@ -97,6 +97,10 @@ public final class ConfigManager {
 				}
 
 				this.client.themes().load(string(clientJson, "theme"), accent);
+				JsonObject gui = object(clientJson, "gui");
+				if (gui != null) {
+					this.client.gui().load(gui);
+				}
 			}
 
 			JsonObject social = this.read(this.directory.resolve("social.json"));
@@ -141,6 +145,7 @@ public final class ConfigManager {
 			clientJson.addProperty("theme", this.client.themes().presetId());
 			Integer accent = this.client.themes().customAccent();
 			clientJson.addProperty("accent", accent != null ? ColorSetting.toHex(accent) : null);
+			clientJson.add("gui", this.client.gui().toJson());
 			this.write(this.directory.resolve("client.json"), clientJson);
 
 			JsonObject social = new JsonObject();
@@ -241,7 +246,7 @@ public final class ConfigManager {
 		JsonObject modules = new JsonObject();
 		for (Module module : this.client.modules().all()) {
 			JsonObject json = new JsonObject();
-			json.addProperty("enabled", module.isEnabled());
+			json.addProperty("enabled", module.isEnabled() && module.savesEnabled());
 			json.add("bind", module.bind().toJson());
 			JsonObject settings = new JsonObject();
 			for (Setting<?> setting : module.settings()) {
@@ -284,7 +289,7 @@ public final class ConfigManager {
 
 			// Settings first, so a module switches on already configured.
 			JsonElement enabled = json.get("enabled");
-			if (enabled != null && enabled.isJsonPrimitive() && enabled.getAsJsonPrimitive().isBoolean() && enabled.getAsBoolean()) {
+			if (module.savesEnabled() && enabled != null && enabled.isJsonPrimitive() && enabled.getAsJsonPrimitive().isBoolean() && enabled.getAsBoolean()) {
 				this.client.setEnabled(module, true);
 			}
 		}

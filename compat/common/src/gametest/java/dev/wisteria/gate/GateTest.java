@@ -8,6 +8,8 @@ import dev.wisteria.compat.Key;
 import dev.wisteria.compat.Platform;
 import dev.wisteria.compat.Renderer2D;
 import dev.wisteria.compat.ScreenBackend;
+import dev.wisteria.module.impl.ClickGui;
+import dev.wisteria.ui.SplashScreen;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
@@ -21,6 +23,7 @@ import net.fabricmc.fabric.api.client.gametest.v1.context.TestSingleplayerContex
 import net.minecraft.client.Screenshot;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.ChatScreen;
+import net.minecraft.client.gui.screens.TitleScreen;
 import net.minecraft.client.resources.sounds.SimpleSoundInstance;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
@@ -49,7 +52,9 @@ public final class GateTest implements FabricClientGameTest {
 		platform.input().listen(probe);
 		platform.packets().listen(probe);
 
+		this.splash(context, platform);
 		this.audio(context, platform);
+		check("splash: gone, title screen is back", context.computeOnClient(minecraft -> GateHooks.currentScreen(minecraft) instanceof TitleScreen));
 
 		try (TestSingleplayerContext singleplayer = context.worldBuilder().create()) {
 			GateHooks.waitForWorld(singleplayer);
@@ -131,7 +136,7 @@ public final class GateTest implements FabricClientGameTest {
 	 */
 	private void core(ClientGameTestContext context, Platform platform, GateProbe probe, TestSingleplayerContext singleplayer, float scale) {
 		Client client = Wisteria.client();
-		check("core: three modules registered", client.modules().all().size() == 3);
+		check("core: modules registered", client.modules().all().size() == 4);
 		check("core: starts with everything off", context.computeOnClient(minecraft -> client.modules().enabled().isEmpty()));
 
 		// A command typed into chat: runs in the client and must not reach the server.
@@ -218,12 +223,102 @@ public final class GateTest implements FabricClientGameTest {
 		context.runOnClient(minecraft -> platform.screens().close());
 		context.waitTicks(5);
 
+		this.clickGui(context, platform, client, scale);
+		this.chat(context, ".theme mint");
+
 		// Left for the second launch to verify.
 		this.chat(context, ".friend add GateFriend");
 		this.chat(context, ".profile save gate");
 		context.waitTicks(5);
 		check("core: profile switched", "gate".equals(context.computeOnClient(minecraft -> client.config().profile())));
 		LOG.info("core checks passed; state left for the restart check");
+	}
+
+	/** The splash that plays over the title screen once the game has loaded. */
+	private void splash(ClientGameTestContext context, Platform platform) {
+		// The automatic one has already played by the time the test harness hands over, so check that it was
+		// triggered and then play it again to look at it.
+		Client client = Wisteria.client();
+		check("splash: triggered when the title screen first appeared", client.isReady());
+		context.runOnClient(minecraft -> platform.screens().open(new SplashScreen(client)));
+		context.waitTicks(26);
+		Frame frame = this.grabLastFrame(context, platform, "gate-splash");
+		int blossoms = frame.count(frame.width / 2 - 60, frame.height / 2 - 140, 120, 200, GateTest::isViolet);
+		LOG.info("splash: {} accent pixels in the mark", blossoms);
+		check("splash: shown over the title screen", context.computeOnClient(minecraft -> !(GateHooks.currentScreen(minecraft) instanceof TitleScreen)));
+		check("splash: mark drawn", blossoms > 1500);
+		check("splash: dark backdrop", luminance(frame.at(20.0F, 20.0F)) < 40);
+		context.waitTicks(30);
+		check("splash: closes itself", context.computeOnClient(minecraft -> GateHooks.currentScreen(minecraft) instanceof TitleScreen));
+	}
+
+	/**
+	 * Stage 3 control: the ClickGUI driven with a real cursor and real key presses. Layout facts used here:
+	 * the Render panel starts at GUI (8, 32), its header is 22 tall, module rows are 17 tall.
+	 */
+	private void clickGui(ClientGameTestContext context, Platform platform, Client client, float scale) {
+		context.getInput().pressKey(InputConstants.KEY_RSHIFT);
+		context.waitTicks(15);
+		check("gui: Right Shift opens it", context.computeOnClient(minecraft -> client.modules().get("clickgui").isEnabled() && platform.screens().isAnyOpen()));
+		this.grabLastFrame(context, platform, "gate-clickgui");
+
+		float firstRow = 32.0F + 22.0F + 1.0F;
+		boolean fullBrightBefore = context.computeOnClient(minecraft -> client.modules().get("fullbright").isEnabled());
+		this.click(context, 48.0F, firstRow + 8.5F, InputConstants.MOUSE_BUTTON_LEFT, scale);
+		check("gui: left click toggles a module", context.computeOnClient(minecraft -> client.modules().get("fullbright").isEnabled()) != fullBrightBefore);
+		this.click(context, 48.0F, firstRow + 8.5F, InputConstants.MOUSE_BUTTON_LEFT, scale);
+
+		// Right click unfolds ESP; its Range slider sits under the Bind row.
+		this.click(context, 48.0F, firstRow + 17.0F + 8.5F, InputConstants.MOUSE_BUTTON_RIGHT, scale);
+		context.waitTicks(8);
+		float sliderY = firstRow + 2.0F * 17.0F + 4.0F + 15.0F + 16.0F;
+		context.getInput().setCursorPos((17.0F + 50.0F) * scale, sliderY * scale);
+		context.waitTicks(2);
+		context.getInput().holdMouse(InputConstants.MOUSE_BUTTON_LEFT);
+		context.waitTicks(2);
+		String half = context.computeOnClient(minecraft -> client.modules().get("esp").setting("range").format());
+		context.getInput().setCursorPos((17.0F + 100.0F) * scale, sliderY * scale);
+		context.waitTicks(3);
+		context.getInput().releaseMouse(InputConstants.MOUSE_BUTTON_LEFT);
+		context.waitTicks(2);
+		String full = context.computeOnClient(minecraft -> client.modules().get("esp").setting("range").format());
+		LOG.info("gui: slider at half = {}, dragged to the end = {}", half, full);
+		check("gui: clicking the slider sets the value", "132".equals(half));
+		check("gui: dragging the slider follows the cursor", "256".equals(full));
+		this.grabLastFrame(context, platform, "gate-clickgui-settings");
+		this.chat(context, ".esp range 48");
+
+		// Just typing searches; with one match left, it is the first row.
+		boolean watermarkBefore = context.computeOnClient(minecraft -> client.modules().get("watermark").isEnabled());
+		context.getInput().typeChars("water");
+		context.waitTicks(4);
+		this.grabLastFrame(context, platform, "gate-clickgui-search");
+		this.click(context, 48.0F, firstRow + 8.5F, InputConstants.MOUSE_BUTTON_LEFT, scale);
+		check("gui: search narrows the list to the match", context.computeOnClient(minecraft -> client.modules().get("watermark").isEnabled()) != watermarkBefore);
+		this.click(context, 48.0F, firstRow + 8.5F, InputConstants.MOUSE_BUTTON_LEFT, scale);
+
+		// The last theme dot on the status line.
+		float guiWidth = context.computeOnClient(minecraft -> (float)minecraft.getWindow().getGuiScaledWidth());
+		float guiHeight = context.computeOnClient(minecraft -> (float)minecraft.getWindow().getGuiScaledHeight());
+		this.click(context, guiWidth - 10.0F - 15.0F + 4.5F, guiHeight - 15.0F + 5.5F, InputConstants.MOUSE_BUTTON_LEFT, scale);
+		check("gui: a theme dot switches the theme", "frost".equals(context.computeOnClient(minecraft -> client.themes().presetId())));
+		context.waitTicks(3);
+		this.grabLastFrame(context, platform, "gate-clickgui-frost");
+
+		double micros = context.computeOnClient(minecraft -> ((ClickGui)client.modules().get("clickgui")).screen().renderMicros());
+		LOG.info("gui: {} microseconds of CPU per frame to lay out and submit the GUI", Math.round(micros));
+		check("gui: frame cost stays far below a 60 fps frame (16667 us)", micros < 2000.0);
+
+		context.getInput().pressKey(InputConstants.KEY_RSHIFT);
+		context.waitTicks(5);
+		check("gui: Right Shift closes it", context.computeOnClient(minecraft -> !client.modules().get("clickgui").isEnabled() && !platform.screens().isAnyOpen()));
+	}
+
+	private void click(ClientGameTestContext context, float guiX, float guiY, int button, float scale) {
+		context.getInput().setCursorPos(guiX * scale, guiY * scale);
+		context.waitTicks(2);
+		context.getInput().pressMouse(button);
+		context.waitTicks(3);
 	}
 
 	/** Second launch of the same game directory: is everything the first launch set still there? */
@@ -240,7 +335,11 @@ public final class GateTest implements FabricClientGameTest {
 			check("restart: FullBright off", !client.modules().get("fullbright").isEnabled());
 			check("restart: friend", client.relations().isFriend("GateFriend"));
 			check("restart: theme", "mint".equals(client.themes().presetId()));
+			check("restart: ClickGUI closed", !client.modules().get("clickgui").isEnabled());
+			check("restart: panel layout remembered", client.gui().panel(dev.wisteria.module.Category.RENDER) != null);
 		});
+		// The splash may still be playing; the test harness wants to be handed back the title screen.
+		context.waitFor(minecraft -> GateHooks.currentScreen(minecraft) instanceof TitleScreen);
 		LOG.info("gate restart check passed: Minecraft {} on {}", platform.minecraftVersion(), platform.graphicsBackend());
 	}
 

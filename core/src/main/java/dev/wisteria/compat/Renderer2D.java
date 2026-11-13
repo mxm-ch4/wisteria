@@ -62,6 +62,9 @@ public interface Renderer2D {
 
 	void scale(float sx, float sy);
 
+	/** Rotates everything drawn until the matching {@link #pop()} about the current origin; positive is clockwise. */
+	void rotate(float radians);
+
 	/** Blurs everything drawn so far in this frame. The game allows it once per frame; extra calls are ignored. */
 	void blurBehind();
 }

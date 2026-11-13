@@ -63,8 +63,8 @@ class ClientTest {
 	// ---- modules ----
 
 	@Test
-	void theThreeFirstModulesAreRegistered() {
-		assertEquals(List.of("fullbright", "esp", "watermark"), this.client.modules().all().stream().map(Module::id).toList());
+	void theFirstModulesAreRegistered() {
+		assertEquals(List.of("fullbright", "esp", "watermark", "clickgui"), this.client.modules().all().stream().map(Module::id).toList());
 		assertEquals(3, this.client.modules().in(Category.RENDER).size());
 		assertTrue(this.client.modules().enabled().isEmpty());
 		assertNotNull(this.client.modules().get("FullBright"));
@@ -242,7 +242,7 @@ class ClientTest {
 
 		ChatBackend.Completion modules = this.platform.tab(".toggle ");
 		assertEquals(8, modules.start());
-		assertEquals(List.of("esp", "fullbright", "watermark"), modules.candidates());
+		assertEquals(List.of("clickgui", "esp", "fullbright", "watermark"), modules.candidates());
 		assertEquals(List.of("fullbright"), this.platform.tab(".toggle fu").candidates());
 		assertEquals(List.of("off", "on"), this.platform.tab(".toggle esp ").candidates());
 

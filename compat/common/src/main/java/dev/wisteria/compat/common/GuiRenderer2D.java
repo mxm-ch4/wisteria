@@ -187,6 +187,11 @@ final class GuiRenderer2D implements Renderer2D {
 	}
 
 	@Override
+	public void rotate(float radians) {
+		this.graphics.pose().rotate(radians);
+	}
+
+	@Override
 	public void blurBehind() {
 		if (this.blurred) {
 			return;

@@ -11,11 +11,14 @@ import dev.wisteria.event.EventBus;
 import dev.wisteria.event.Events;
 import dev.wisteria.module.Module;
 import dev.wisteria.module.ModuleManager;
+import dev.wisteria.module.impl.ClickGui;
 import dev.wisteria.module.impl.EntityEsp;
 import dev.wisteria.module.impl.FullBright;
 import dev.wisteria.module.impl.Watermark;
 import dev.wisteria.social.Relations;
+import dev.wisteria.ui.SplashScreen;
 import dev.wisteria.ui.ThemeManager;
+import dev.wisteria.ui.gui.GuiState;
 
 /** The running client: one per game session. Wires the game's callbacks to the event bus and owns the managers. */
 public final class Client {
@@ -23,6 +26,8 @@ public final class Client {
 	private final EventBus bus = new EventBus();
 	private final Relations relations = new Relations();
 	private final ThemeManager themes = new ThemeManager();
+	private final GuiState gui = new GuiState();
+	private volatile boolean ready;
 	private final ModuleManager modules;
 	private final CommandManager commands;
 	private final ConfigManager config;
@@ -36,6 +41,7 @@ public final class Client {
 		this.modules.register(new FullBright());
 		this.modules.register(new EntityEsp());
 		this.modules.register(new Watermark());
+		this.modules.register(new ClickGui());
 
 		// A handler that throws takes its own module down, not the game.
 		this.bus.onError((subscription, error) -> {
@@ -55,6 +61,7 @@ public final class Client {
 		this.relations.onChange(this.config::markDirty);
 		this.commands.onChange(this.config::markDirty);
 		this.themes.onChange(this.config::markDirty);
+		this.gui.onChange(this.config::markDirty);
 		this.bridge();
 	}
 
@@ -74,6 +81,12 @@ public final class Client {
 			@Override
 			public void onRender3D(Renderer3D renderer, float tickDelta) {
 				Client.this.bus.post(new Events.Render3D(renderer, tickDelta));
+			}
+
+			@Override
+			public void onTitleScreen() {
+				Client.this.ready = true;
+				Client.this.platform.screens().open(new SplashScreen(Client.this));
 			}
 
 			@Override
@@ -128,6 +141,15 @@ public final class Client {
 
 	public Relations relations() {
 		return this.relations;
+	}
+
+	/** True once the game has finished loading and reached the title screen for the first time. */
+	public boolean isReady() {
+		return this.ready;
+	}
+
+	public GuiState gui() {
+		return this.gui;
 	}
 
 	public ThemeManager themes() {

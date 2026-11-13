@@ -1,9 +1,14 @@
 package dev.wisteria.compat.common;
 
+import com.mojang.blaze3d.platform.InputConstants;
+import dev.wisteria.compat.Key;
 import dev.wisteria.compat.ScreenBackend;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.input.CharacterEvent;
+import net.minecraft.client.input.KeyEvent;
+import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
 import org.jspecify.annotations.Nullable;
 
@@ -46,7 +51,7 @@ public final class CommonScreens implements ScreenBackend {
 		return this.pending != null || this.platform.currentScreen() != null;
 	}
 
-	/** The game screen that hosts a client screen. Input forwarding comes with the GUI stage. */
+	/** The game screen that hosts a client screen and passes it the game's input. */
 	private static final class Host extends Screen {
 		private final CommonPlatform platform;
 		private final ClientScreen screen;
@@ -73,6 +78,53 @@ public final class CommonScreens implements ScreenBackend {
 			} finally {
 				renderer.finish();
 			}
+		}
+
+		@Override
+		public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
+			MouseButton button = button(event.buttonInfo().button());
+			return button != null && this.screen.mouseDown((float)event.x(), (float)event.y(), button) || super.mouseClicked(event, doubleClick);
+		}
+
+		@Override
+		public boolean mouseReleased(MouseButtonEvent event) {
+			MouseButton button = button(event.buttonInfo().button());
+			if (button != null) {
+				this.screen.mouseUp((float)event.x(), (float)event.y(), button);
+			}
+
+			return super.mouseReleased(event);
+		}
+
+		@Override
+		public boolean mouseScrolled(double x, double y, double scrollX, double scrollY) {
+			return this.screen.mouseScroll((float)x, (float)y, (float)scrollY) || super.mouseScrolled(x, y, scrollX, scrollY);
+		}
+
+		@Override
+		public boolean keyPressed(KeyEvent event) {
+			Key key = KeyTable.fromNative(event.key());
+			// Offered to the client screen first; what it does not use goes on to the game, which is how Escape closes.
+			return key != null && this.screen.keyDown(key, event.hasShiftDown(), event.hasControlDown(), event.hasAltDown()) || super.keyPressed(event);
+		}
+
+		@Override
+		public boolean charTyped(CharacterEvent event) {
+			this.screen.charTyped(event.codepointAsString());
+			return true;
+		}
+
+		// Button numbers differ between versions (GLFW counts from 0, SDL from 1); the constant names do not.
+		private static @Nullable MouseButton button(int nativeButton) {
+			if (nativeButton == InputConstants.MOUSE_BUTTON_LEFT) {
+				return MouseButton.LEFT;
+			}
+
+			if (nativeButton == InputConstants.MOUSE_BUTTON_RIGHT) {
+				return MouseButton.RIGHT;
+			}
+
+			return nativeButton == InputConstants.MOUSE_BUTTON_MIDDLE ? MouseButton.MIDDLE : null;
 		}
 
 		@Override

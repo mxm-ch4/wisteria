@@ -5,6 +5,7 @@ import dev.wisteria.compat.InputBackend;
 import dev.wisteria.compat.Key;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.input.KeyEvent;
 
 public final class CommonInput implements InputBackend {
@@ -24,6 +25,16 @@ public final class CommonInput implements InputBackend {
 	@Override
 	public void listen(InputListener listener) {
 		this.listeners.add(listener);
+	}
+
+	@Override
+	public String clipboard() {
+		return Minecraft.getInstance().keyboardHandler.getClipboard();
+	}
+
+	@Override
+	public void setClipboard(String text) {
+		Minecraft.getInstance().keyboardHandler.setClipboard(text);
 	}
 
 	/** Called by the keyboard mixin for every key event the game receives. */

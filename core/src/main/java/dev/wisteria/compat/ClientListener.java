@@ -14,6 +14,10 @@ public interface ClientListener {
 	default void onRender3D(Renderer3D renderer, float tickDelta) {
 	}
 
+	/** The title screen is showing for the first time since launch: the game has finished loading. */
+	default void onTitleScreen() {
+	}
+
 	/** The game is shutting down: last chance to save. */
 	default void onStop() {
 	}

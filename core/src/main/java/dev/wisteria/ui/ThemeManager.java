@@ -36,6 +36,16 @@ public final class ThemeManager {
 		return this.theme;
 	}
 
+	/** @throws IllegalArgumentException if there is no such preset */
+	public Theme preset(String id) {
+		Theme preset = this.presets.get(id.toLowerCase(Locale.ROOT));
+		if (preset == null) {
+			throw new IllegalArgumentException("No theme called \"" + id + "\"");
+		}
+
+		return preset;
+	}
+
 	public List<String> presetIds() {
 		return List.copyOf(this.presets.keySet());
 	}

@@ -20,6 +20,8 @@ public final class FakePlatform implements Platform {
 	public final List<WorldBackend.Entity> entities = new ArrayList<>();
 	public float brightness;
 	public boolean worldLoaded = true;
+	public String clipboard = "";
+	public ScreenBackend.ClientScreen openScreen;
 	private final Path directory;
 	private final List<ClientListener> listeners = new ArrayList<>();
 	private final List<InputBackend.InputListener> inputListeners = new ArrayList<>();
@@ -114,6 +116,16 @@ public final class FakePlatform implements Platform {
 			public void listen(InputListener listener) {
 				FakePlatform.this.inputListeners.add(listener);
 			}
+
+			@Override
+			public String clipboard() {
+				return FakePlatform.this.clipboard;
+			}
+
+			@Override
+			public void setClipboard(String text) {
+				FakePlatform.this.clipboard = text;
+			}
 		};
 	}
 
@@ -134,15 +146,21 @@ public final class FakePlatform implements Platform {
 		return new ScreenBackend() {
 			@Override
 			public void open(ClientScreen screen) {
+				FakePlatform.this.openScreen = screen;
 			}
 
 			@Override
 			public void close() {
+				ClientScreen screen = FakePlatform.this.openScreen;
+				FakePlatform.this.openScreen = null;
+				if (screen != null) {
+					screen.onClose();
+				}
 			}
 
 			@Override
 			public boolean isAnyOpen() {
-				return false;
+				return FakePlatform.this.openScreen != null;
 			}
 		};
 	}

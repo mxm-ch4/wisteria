@@ -86,7 +86,7 @@ public final class ModuleManager {
 		}
 
 		for (Module module : this.modules.values()) {
-			if (module.bind().matches(event.key())) {
+			if (module.isToggleable() && module.bind().matches(event.key())) {
 				this.client.setEnabled(module, !module.isEnabled());
 			}
 		}

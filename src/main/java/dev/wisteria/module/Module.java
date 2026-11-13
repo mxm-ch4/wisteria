@@ -144,7 +144,8 @@ public abstract class Module {
 	 * @throws SecurityException for modules without the SECRETS permission
 	 */
 	protected final Optional<Secret> secret(String name) {
-		return this.client().secrets().get(this.id, name);
+		Client current = this.client();
+		return current.secrets().get(this.id, name, current.config().profile());
 	}
 
 	/**
@@ -164,6 +165,15 @@ public abstract class Module {
 		}
 
 		return current;
+	}
+
+	/** False for groups of client controls that have no on and off: their row only opens. */
+	protected boolean toggleable() {
+		return true;
+	}
+
+	public final boolean isToggleable() {
+		return this.toggleable();
 	}
 
 	/** False for modules whose "enabled" is a momentary state, like an open screen: they always start off. */

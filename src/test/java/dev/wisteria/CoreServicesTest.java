@@ -113,7 +113,7 @@ class CoreServicesTest {
 		Client client = this.start(new FakePlatform(this.game));
 		Storage files = client.modules().get(Notifier.class).files();
 		files.writeText("sent.log", "1");
-		assertTrue(Files.isRegularFile(this.game.resolve("wisteria/data/notifier/sent.log")));
+		assertTrue(Files.isRegularFile(this.game.resolve("wisteria/profiles/default/data/notifier/sent.log")), "in the active profile's folder");
 	}
 
 	@Test

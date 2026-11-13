@@ -41,7 +41,16 @@ public final class Modules {
 			new Potions(),
 			new Notifications(),
 			new Keybinds(),
-			new HudEditor()
+			new dev.wisteria.modules.hud.ProxyHud(),
+			new HudEditor(),
+			// Client: every command's counterpart in the menu
+			new dev.wisteria.modules.client.ProxySection(),
+			new dev.wisteria.modules.client.ProfilesSection(),
+			new dev.wisteria.modules.client.FriendsSection(),
+			new dev.wisteria.modules.client.NetworkSection(),
+			new dev.wisteria.modules.client.ChatSection(),
+			new dev.wisteria.modules.client.InterfaceSection(),
+			new dev.wisteria.modules.client.ToolsSection()
 		);
 	}
 }

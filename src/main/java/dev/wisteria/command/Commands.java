@@ -117,6 +117,11 @@ final class Commands {
 	}
 
 	private static final class Help extends Command {
+		@Override
+		public String guiControl() {
+			return "setting:client/tools/help";
+		}
+
 		Help() {
 			super("help", List.of("?"), "[command]", "Lists commands or explains one");
 		}
@@ -152,6 +157,11 @@ final class Commands {
 	}
 
 	private static final class Modules extends Command {
+		@Override
+		public String guiControl() {
+			return "panel:render";
+		}
+
 		Modules() {
 			super("modules", List.of("mods"), "", "Lists modules by category");
 		}
@@ -170,6 +180,11 @@ final class Commands {
 	}
 
 	private static final class Toggle extends Command {
+		@Override
+		public String guiControl() {
+			return "module:render/esp";
+		}
+
 		Toggle() {
 			super("toggle", List.of("t"), "<module> [on|off]", "Switches a module on or off");
 		}
@@ -181,6 +196,9 @@ final class Commands {
 			}
 
 			Module module = module(client, args.get(0));
+			if (!module.isToggleable()) {
+				throw new CommandException(module.name() + " is a group of settings, not something to switch on; try " + client.commands().prefix() + module.id());
+			}
 			boolean enabled = !module.isEnabled();
 			if (args.size() == 2) {
 				switch (args.get(1).toLowerCase(Locale.ROOT)) {
@@ -197,11 +215,17 @@ final class Commands {
 
 		@Override
 		public List<String> complete(Client client, List<String> args) {
-			return args.size() == 1 ? moduleIds(client) : args.size() == 2 ? List.of("on", "off") : List.of();
+			return args.size() == 1 ? client.modules().all().stream().filter(Module::isToggleable).map(Module::id).sorted().toList()
+				: args.size() == 2 ? List.of("on", "off") : List.of();
 		}
 	}
 
 	private static final class Bind extends Command {
+		@Override
+		public String guiControl() {
+			return "setting:render/esp/bind";
+		}
+
 		Bind() {
 			super("bind", List.of("b"), "<module> [key|none]", "Shows or changes the key that toggles a module");
 		}
@@ -232,6 +256,11 @@ final class Commands {
 	}
 
 	private static final class Set extends Command {
+		@Override
+		public String guiControl() {
+			return "setting:render/esp/range";
+		}
+
 		Set() {
 			super("set", List.of("s"), "<module> [setting] [value]", "Shows or changes a module's settings");
 		}
@@ -262,6 +291,11 @@ final class Commands {
 	}
 
 	private static final class Reset extends Command {
+		@Override
+		public String guiControl() {
+			return "reset:render/esp";
+		}
+
 		Reset() {
 			super("reset", List.of(), "<module> [setting]", "Puts a setting, or a whole module, back to defaults");
 		}
@@ -297,6 +331,11 @@ final class Commands {
 	}
 
 	private static final class Relation extends Command {
+		@Override
+		public String guiControl() {
+			return "setting:client/friends/" + this.plural;
+		}
+
 		private final Relations.Relation relation;
 		private final String plural;
 
@@ -365,8 +404,14 @@ final class Commands {
 	}
 
 	private static final class Profile extends Command {
+		@Override
+		public String guiControl() {
+			return "setting:client/profiles/";
+		}
+
 		Profile() {
-			super("profile", List.of("p"), "list / load <name> / save <name> / delete <name>", "Switches between saved sets of module settings");
+			super("profile", List.of("p"), "list / load <name> / save <name> / create <name> / delete <name>",
+				"Switches between profiles: settings, proxy and data each; create makes an empty one");
 		}
 
 		@Override
@@ -394,6 +439,10 @@ final class Commands {
 					config.saveAs(name);
 					out.print("Saved as profile \"" + name + "\", now active");
 				}
+				case "create" -> {
+					config.create(name);
+					out.print("Profile \"" + name + "\" created, empty; load it with " + client.commands().prefix() + "profile load " + name);
+				}
 				case "delete" -> {
 					config.delete(name);
 					out.print("Profile \"" + name + "\" deleted");
@@ -405,7 +454,7 @@ final class Commands {
 		@Override
 		public List<String> complete(Client client, List<String> args) {
 			if (args.size() == 1) {
-				return List.of("list", "load", "save", "delete");
+				return List.of("list", "load", "save", "create", "delete");
 			}
 
 			BiFunction<String, String, Boolean> is = String::equalsIgnoreCase;
@@ -418,6 +467,11 @@ final class Commands {
 	}
 
 	private static final class Prefix extends Command {
+		@Override
+		public String guiControl() {
+			return "setting:client/chat/prefix";
+		}
+
 		Prefix() {
 			super("prefix", List.of(), "[symbols]", "Shows or changes what client commands start with");
 		}
@@ -437,6 +491,11 @@ final class Commands {
 	}
 
 	private static final class ThemeCommand extends Command {
+		@Override
+		public String guiControl() {
+			return "setting:client/interface/theme";
+		}
+
 		ThemeCommand() {
 			super("theme", List.of(), "[preset] / accent <#colour>", "Shows or changes the interface theme");
 		}
@@ -472,6 +531,11 @@ final class Commands {
 	}
 
 	private static final class Design extends Command {
+		@Override
+		public String guiControl() {
+			return "setting:client/tools/design-screen";
+		}
+
 		Design() {
 			super("design", List.of(), "", "Opens the design system reference screen");
 		}
@@ -483,6 +547,11 @@ final class Commands {
 	}
 
 	private static final class NetCommand extends Command {
+		@Override
+		public String guiControl() {
+			return "setting:client/network/allowed-hosts";
+		}
+
 		NetCommand() {
 			super("net", List.of(), "list / allow <host> / deny <host>", "Which hosts the client may connect to (only for modules that need it)");
 		}
@@ -524,6 +593,11 @@ final class Commands {
 	}
 
 	private static final class Bench extends Command {
+		@Override
+		public String guiControl() {
+			return "setting:client/tools/bench-boxes";
+		}
+
 		private @org.jspecify.annotations.Nullable BoxBench current;
 
 		Bench() {
@@ -565,6 +639,11 @@ final class Commands {
 	}
 
 	private static final class HudCommand extends Command {
+		@Override
+		public String guiControl() {
+			return "module:hud/hudeditor";
+		}
+
 		HudCommand() {
 			super("hud", List.of(), "/ list / <element> <anchor> [x y] / <element> scale <size|reset> / reset [element]", "Opens the HUD editor, places and sizes elements by name");
 		}

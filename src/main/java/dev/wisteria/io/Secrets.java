@@ -17,6 +17,7 @@ import java.util.Optional;
  */
 public final class Secrets {
 	public static final String FILE = ".env";
+	public static final String PROFILE_DEFAULT = "default";
 	private static final String MASK = "****";
 	/** Shorter values are not scrubbed from text: they would match ordinary words. */
 	private static final int MIN_REDACT_LENGTH = 6;
@@ -40,9 +41,62 @@ public final class Secrets {
 	 * @throws SecurityException when the module may not read secrets
 	 */
 	public Optional<Secret> get(String moduleId, String name) {
+		return this.get(moduleId, name, PROFILE_DEFAULT);
+	}
+
+	/**
+	 * The secret for a profile: {@code NAME} in the default profile, {@code NAME@profile} in any other. Never falls back
+	 * to the default's, so profiles do not share tokens.
+	 */
+	public Optional<Secret> get(String moduleId, String name, String profile) {
 		Permission.SECRETS.check(moduleId);
+		String key = keyFor(name, profile);
+		String value = this.values().get(key);
+		return value == null || value.isEmpty() ? Optional.empty() : Optional.of(new Secret(key, value));
+	}
+
+	/** The name a secret has in the file for a profile. */
+	public static String keyFor(String name, String profile) {
+		return profile.equals(PROFILE_DEFAULT) ? name : name + "@" + profile;
+	}
+
+	/**
+	 * For the core only (proxy logins): the raw value, which must never be printed. Modules use
+	 * {@code Module.secret(...)}, which needs the SECRETS permission.
+	 */
+	public Optional<String> forCore(String name) {
 		String value = this.values().get(name);
-		return value == null || value.isEmpty() ? Optional.empty() : Optional.of(new Secret(name, value));
+		return value == null || value.isEmpty() ? Optional.empty() : Optional.of(value);
+	}
+
+	/**
+	 * Writes a secret to the file (or removes it, for an empty value), keeping every other line as it was. Only for
+	 * what the user typed into a password field in the menu.
+	 */
+	public synchronized void put(String name, String value) {
+		if (!name.matches("[A-Za-z0-9_@.-]{1,96}") || value.contains("\n") || value.contains("\r")) {
+			throw new IllegalArgumentException("Cannot store that secret");
+		}
+
+		try {
+			List<String> lines = Files.isRegularFile(this.file) ? new java.util.ArrayList<>(Files.readAllLines(this.file, StandardCharsets.UTF_8)) : new java.util.ArrayList<>();
+			lines.removeIf(line -> {
+				String trimmed = line.strip();
+				return trimmed.startsWith(name + "=") || trimmed.startsWith("export " + name + "=");
+			});
+			if (!value.isEmpty()) {
+				lines.add(name + "=" + value);
+			}
+
+			Files.createDirectories(this.file.getParent());
+			Path temporary = this.file.resolveSibling(FILE + ".tmp");
+			Files.write(temporary, lines, StandardCharsets.UTF_8);
+			Files.move(temporary, this.file, java.nio.file.StandardCopyOption.REPLACE_EXISTING, java.nio.file.StandardCopyOption.ATOMIC_MOVE);
+		} catch (IOException e) {
+			throw new IllegalArgumentException("Could not write the secrets file: " + e.getClass().getSimpleName());
+		}
+
+		this.reload();
 	}
 
 	/** Reads the file again, after the user edited it. */

@@ -34,6 +34,12 @@ public abstract class Command {
 		return this.description;
 	}
 
+	/**
+	 * Where the same thing is done in the ClickGUI: a control id, or the start of one, that must exist there. Every
+	 * command has one, so the client never needs the chat (a test checks it).
+	 */
+	public abstract String guiControl();
+
 	/** @throws CommandException with a message for the player when the arguments make no sense */
 	public abstract void run(Client client, List<String> args, Output out);
 

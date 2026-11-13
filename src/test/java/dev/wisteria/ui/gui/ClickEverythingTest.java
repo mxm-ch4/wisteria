@@ -111,8 +111,10 @@ class ClickEverythingTest {
 		ControlWalker.Result result = new ControlWalker(new Direct(screen, screen.controls())).walk("");
 		// Panels, fold arrows, search, theme dots, every module row and arrow, and every setting control inside.
 		assertPassed(result, 60);
-		assertTrue(result.skipped().stream().allMatch(id -> id.startsWith("module:misc/clickgui") || id.startsWith("module:hud/hudeditor")),
-			"unexpected skips: " + result.skipped());
+		// Skipped, each with its reason: rows that swap this screen out, buttons that open other screens or send requests,
+		// and the destructive ones (module reset, removing list entries), which have tests of their own.
+		assertTrue(result.skipped().stream().allMatch(id -> id.startsWith("module:misc/clickgui") || id.startsWith("module:hud/hudeditor")
+			|| id.startsWith("reset:") || id.startsWith("setting:client/")), "unexpected skips: " + result.skipped());
 	}
 
 	@Test

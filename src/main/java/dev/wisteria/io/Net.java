@@ -56,6 +56,7 @@ public final class Net {
 		.executor(this.executor)
 		.build();
 	private volatile @Nullable BiConsumer<String, String> suspendListener;
+	private volatile java.util.function.Supplier<@Nullable String> offline = () -> null;
 
 	public Net(Secrets secrets) {
 		this(secrets, System::nanoTime);
@@ -118,6 +119,14 @@ public final class Net {
 		this.changeListeners.add(listener);
 	}
 
+	/**
+	 * Why the client's own network is off right now (a proxy is on for this profile, and requests would leave from the
+	 * real address), or null when it is on.
+	 */
+	public void offlineWhen(java.util.function.Supplier<@Nullable String> reason) {
+		this.offline = reason;
+	}
+
 	/** Told (module id, reason) when a module's network is suspended; the client prints it in chat. */
 	public void onSuspend(BiConsumer<String, String> listener) {
 		this.suspendListener = listener;
@@ -154,6 +163,11 @@ public final class Net {
 	 */
 	public CompletableFuture<Response> send(String moduleId, Request request) {
 		Permission.NET.check(moduleId);
+		String off = this.offline.get();
+		if (off != null) {
+			return CompletableFuture.failedFuture(new NetException(moduleId + ": network off: " + off));
+		}
+
 		String suspended = this.suspendedReason(moduleId);
 		if (suspended != null) {
 			return CompletableFuture.failedFuture(new NetException(moduleId + ": network " + suspended));

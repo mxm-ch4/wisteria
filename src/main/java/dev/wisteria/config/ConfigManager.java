@@ -44,6 +44,7 @@ public final class ConfigManager {
 	private final Path directory;
 	private String profile = DEFAULT_PROFILE;
 	private boolean loading;
+	private final List<java.util.function.Consumer<String>> profileListeners = new java.util.concurrent.CopyOnWriteArrayList<>();
 	private boolean dirty;
 	private int ticksSinceChange;
 
@@ -58,6 +59,16 @@ public final class ConfigManager {
 
 	public String profile() {
 		return this.profile;
+	}
+
+	/** Told the active profile's name after loading and after every switch. */
+	public void onProfile(java.util.function.Consumer<String> listener) {
+		this.profileListeners.add(listener);
+	}
+
+	/** Tells the listeners which profile is active. */
+	public void profileChanged() {
+		this.profileListeners.forEach(listener -> listener.accept(this.profile));
 	}
 
 	public static boolean isValidProfileName(String name) {
@@ -97,6 +108,11 @@ public final class ConfigManager {
 				}
 
 				this.client.themes().load(string(clientJson, "theme"), accent);
+				JsonElement proxies = clientJson.get("proxies");
+				if (proxies != null && proxies.isJsonArray()) {
+					this.client.proxies().load(proxies.getAsJsonArray());
+				}
+
 				JsonObject hud = object(clientJson, "hud");
 				if (hud != null) {
 					this.client.hud().load(hud);
@@ -156,6 +172,7 @@ public final class ConfigManager {
 			Integer accent = this.client.themes().customAccent();
 			clientJson.addProperty("accent", accent != null ? ColorSetting.toHex(accent) : null);
 			clientJson.add("gui", this.client.gui().toJson());
+			clientJson.add("proxies", this.client.proxies().toJson());
 			clientJson.add("hud", this.client.hud().toJson());
 			JsonObject net = new JsonObject();
 			net.add("allowedHosts", array(this.client.net().allowedHosts()));
@@ -201,6 +218,26 @@ public final class ConfigManager {
 		this.save();
 		this.profile = name;
 		this.save();
+		this.profileChanged();
+	}
+
+	/**
+	 * Creates an empty profile (default settings, no data, no proxy) without switching to it. Nothing of the active
+	 * profile is copied.
+	 */
+	public void create(String name) {
+		requireValid(name);
+		if (this.profiles().contains(name)) {
+			throw new IllegalArgumentException("There is already a profile called \"" + name + "\"");
+		}
+
+		JsonObject empty = new JsonObject();
+		empty.add("modules", new JsonObject());
+		try {
+			this.write(this.profileFile(name), empty);
+		} catch (IOException e) {
+			throw new IllegalArgumentException("Could not create \"" + name + "\": " + e.getMessage());
+		}
 	}
 
 	/**
@@ -230,6 +267,7 @@ public final class ConfigManager {
 		}
 
 		this.save();
+		this.profileChanged();
 	}
 
 	/** @throws IllegalArgumentException for the active profile or one that does not exist */
@@ -264,7 +302,9 @@ public final class ConfigManager {
 			json.add("bind", module.bind().toJson());
 			JsonObject settings = new JsonObject();
 			for (Setting<?> setting : module.settings()) {
-				settings.add(setting.id(), setting.toJson());
+				if (setting.persistent()) {
+					settings.add(setting.id(), setting.toJson());
+				}
 			}
 
 			json.add("settings", settings);
@@ -280,7 +320,14 @@ public final class ConfigManager {
 	private void applyProfile(JsonObject root) {
 		JsonObject modules = object(root, "modules");
 		for (Module module : this.client.modules().all()) {
-			module.reset();
+			if (module.savesEnabled()) {
+				module.reset();
+			} else {
+				// An open screen (the ClickGUI the switch was made from) stays open; only its settings go back.
+				module.bind().reset();
+				module.settings().forEach(dev.wisteria.setting.Setting::reset);
+			}
+
 			JsonObject json = modules != null ? object(modules, module.id()) : null;
 			if (json == null) {
 				continue;
@@ -295,7 +342,7 @@ public final class ConfigManager {
 			if (settings != null) {
 				for (Map.Entry<String, JsonElement> entry : settings.entrySet()) {
 					Setting<?> setting = module.setting(entry.getKey());
-					if (setting != null && entry.getValue() != null) {
+					if (setting != null && setting.persistent() && entry.getValue() != null) {
 						setting.fromJson(entry.getValue());
 					}
 				}

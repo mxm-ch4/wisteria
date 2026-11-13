@@ -138,7 +138,7 @@ public final class GateTest implements FabricClientGameTest {
 	 */
 	private void core(ClientGameTestContext context, Platform platform, GateProbe probe, TestSingleplayerContext singleplayer, float scale) {
 		Client client = Wisteria.client();
-		check("core: modules registered", client.modules().all().size() == 14);
+		check("core: modules registered", client.modules().all().size() == dev.wisteria.modules.Modules.create().size());
 		check("core: starts with everything off", context.computeOnClient(minecraft -> client.modules().enabled().isEmpty()));
 
 		// A command typed into chat: runs in the client and must not reach the server.
@@ -148,6 +148,12 @@ public final class GateTest implements FabricClientGameTest {
 		context.waitTicks(5);
 		check("core: command switched Watermark on", context.computeOnClient(minecraft -> client.modules().get("watermark").isEnabled()));
 		check("core: command was not sent to the server", probe.sentNames.stream().noneMatch(name -> name.contains("Chat")));
+		// Nothing with the prefix leaves the client: not an unknown command, not the bare prefix, not a usage error.
+		chat(context, ".nosuchcommand");
+		chat(context, ".");
+		chat(context, ".toggle");
+		context.waitTicks(3);
+		check("core: unknown and broken commands were not sent either", probe.sentNames.stream().noneMatch(name -> name.contains("Chat")));
 		Frame hud = grabLastFrame(context, platform, "gate-core-hud");
 		int labelPixels = hud.count(hud.width() - Math.round(110 * scale), hud.height() - Math.round(26 * scale), Math.round(110 * scale), Math.round(26 * scale), GameTestKit::isViolet);
 		LOG.info("core: {} accent pixels in the watermark corner", labelPixels);

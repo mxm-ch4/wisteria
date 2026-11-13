@@ -27,6 +27,26 @@ final class SettingRows {
 
 	/** @return the row for a setting, or null for a kind the GUI does not know yet */
 	static SettingRow of(Setting<?> setting) {
+		if (setting instanceof dev.wisteria.setting.ListSetting list) {
+			return new ActionRows.Entries(list);
+		}
+
+		if (setting instanceof dev.wisteria.setting.InputSetting input) {
+			return new ActionRows.Input(input);
+		}
+
+		if (setting instanceof dev.wisteria.setting.ActionSetting action) {
+			return new ActionRows.Action(action);
+		}
+
+		if (setting instanceof dev.wisteria.setting.PasswordSetting password) {
+			return new ActionRows.Secret(password);
+		}
+
+		if (setting instanceof dev.wisteria.setting.ChoiceSetting choice) {
+			return new Dropdown(choice);
+		}
+
 		if (setting instanceof BoolSetting bool) {
 			return new Toggle(bool);
 		}
@@ -170,12 +190,13 @@ final class SettingRows {
 
 	static final class Dropdown extends SettingRow {
 		private static final float OPTION_HEIGHT = 13.0F;
-		private final EnumSetting<?> setting;
-		private final List<String> options;
+		private final Setting<?> setting;
+		private List<String> options;
 		private final Animation open = new Animation(0.0F, Animation.NORMAL, Easing.OUT_CUBIC);
 		private boolean opened;
 
-		Dropdown(EnumSetting<?> setting) {
+		// Options are read again every frame: a choice of proxies or profiles changes while the menu is open.
+		Dropdown(Setting<?> setting) {
 			super(setting.name(), setting.description());
 			this.setting = setting;
 			this.options = setting.suggestions();
@@ -188,6 +209,7 @@ final class SettingRows {
 
 		@Override
 		void render(Ui ui) {
+			this.options = this.setting.suggestions();
 			Theme theme = ui.theme();
 			Controls.State control = ui.controls().register(this.id, Controls.Kind.DROPDOWN, this.x, this.y, this.width, HEIGHT,
 				() -> this.opened ? "open" : "closed");

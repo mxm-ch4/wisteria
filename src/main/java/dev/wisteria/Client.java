@@ -37,6 +37,7 @@ public final class Client {
 	private final Secrets secrets;
 	private final Net net;
 	private final dev.wisteria.hud.HudManager hud;
+	private final dev.wisteria.proxy.ProxyManager proxies;
 
 	public Client(Platform platform) {
 		this(platform, Modules.create());
@@ -54,6 +55,19 @@ public final class Client {
 
 		modules.forEach(this.modules::register);
 		this.hud = new dev.wisteria.hud.HudManager(this);
+		this.proxies = new dev.wisteria.proxy.ProxyManager(this);
+		dev.wisteria.modules.client.ProxySection proxySection = this.modules.get(dev.wisteria.modules.client.ProxySection.class);
+		if (proxySection != null) {
+			this.proxies.routeFrom(proxySection::route);
+		}
+
+		// With a proxy on, the client's own requests would leave from the real address: they stay off.
+		this.net.offlineWhen(() -> this.proxies.route() instanceof dev.wisteria.proxy.ProxyManager.Route.Direct ? null
+			: "a proxy is on for this profile");
+		dev.wisteria.modules.client.ChatSection chatSection = this.modules.get(dev.wisteria.modules.client.ChatSection.class);
+		if (chatSection != null) {
+			this.commands.enabledWhen(chatSection::commandsEnabled);
+		}
 
 		// A handler that throws takes its own module down, not the game.
 		this.bus.onError((subscription, error) -> {
@@ -75,6 +89,24 @@ public final class Client {
 		this.themes.onChange(this.config::markDirty);
 		this.gui.onChange(this.config::markDirty);
 		this.hud.onChange(this.config::markDirty);
+		this.proxies.onChange(this.config::markDirty);
+		this.config.onProfile(profile -> {
+			dev.wisteria.modules.client.ProfilesSection section = this.modules.get(dev.wisteria.modules.client.ProfilesSection.class);
+			if (section != null) {
+				section.sync(profile);
+			}
+		});
+		this.themes.onChange(() -> {
+			dev.wisteria.modules.client.InterfaceSection section = this.modules.get(dev.wisteria.modules.client.InterfaceSection.class);
+			if (section != null) {
+				section.sync(this.themes.presetId());
+			}
+		});
+		this.config.profileChanged();
+		dev.wisteria.modules.client.InterfaceSection interfaceSection = this.modules.get(dev.wisteria.modules.client.InterfaceSection.class);
+		if (interfaceSection != null) {
+			interfaceSection.sync(this.themes.presetId());
+		}
 		this.net.onChange(this.config::markDirty);
 		this.net.onSuspend((id, reason) -> platform.execute(() -> {
 			Module module = this.modules.get(id);
@@ -207,9 +239,17 @@ public final class Client {
 		return this.root;
 	}
 
-	/** The folder of one module; modules use {@code Module.storage()}. */
+	/**
+	 * The folder of one module in the active profile, {@code .minecraft/wisteria/profiles/<profile>/data/<module>/}:
+	 * switching profiles switches data too. Modules use {@code Module.storage()}.
+	 */
 	public Storage storage(Module module) {
-		return new Storage(this.root, module.id());
+		return new Storage(this.root.resolve("profiles").resolve(this.config.profile()), module.id());
+	}
+
+	/** Proxies and the route the game's connections take. */
+	public dev.wisteria.proxy.ProxyManager proxies() {
+		return this.proxies;
 	}
 
 	/** The HUD: element placements, drawing, notifications. */

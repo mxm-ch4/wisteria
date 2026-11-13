@@ -22,6 +22,7 @@ public final class TextInput {
 	};
 	private String text = "";
 	private boolean focused;
+	private boolean masked;
 	private float x;
 	private float y;
 	private float width;
@@ -32,6 +33,12 @@ public final class TextInput {
 		this.id = id;
 		this.placeholder = placeholder;
 		this.maxLength = maxLength;
+	}
+
+	/** For secrets: shows dots instead of the text and never copies it to the clipboard. */
+	public TextInput masked() {
+		this.masked = true;
+		return this;
 	}
 
 	/** Called on every edit. */
@@ -106,7 +113,7 @@ public final class TextInput {
 		}
 
 		// Long text scrolls left so the end, where the caret is, stays visible.
-		String shown = this.text;
+		String shown = this.masked ? "•".repeat(this.text.codePointCount(0, this.text.length())) : this.text;
 		while (shown.length() > 1 && style.width(ui.renderer(), shown) > room - 2.0F) {
 			shown = shown.substring(1);
 		}
@@ -138,7 +145,7 @@ public final class TextInput {
 				}
 			}
 			case C -> {
-				if (control) {
+				if (control && !this.masked) {
 					input.setClipboard(this.text);
 				}
 			}

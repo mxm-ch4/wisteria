@@ -100,6 +100,11 @@ public abstract class Setting<T> {
 	 */
 	public abstract void parse(String input);
 
+	/** False for settings that hold no value of their own (buttons, lists kept elsewhere, secrets): never saved. */
+	public boolean persistent() {
+		return true;
+	}
+
 	/** Values worth offering as completions; empty when the value is free-form. */
 	public List<String> suggestions() {
 		return List.of();

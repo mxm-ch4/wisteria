@@ -7,13 +7,16 @@
 		"ClientLevelMixin",
 		"ClientPacketListenerMixin",
 		"CommandSuggestionsMixin",
+		"ConnectionProxyMixin",
 		"EntityRendererMixin",
 		"GuiMixin",
 		"ConnectionMixin",
 		"KeyboardHandlerMixin",
 		"LightmapMixin",
 		"LivingEntityRendererMixin",
-		"MultiPlayerGameModeMixin"
+		"MultiPlayerGameModeMixin",
+		"ResourcePackMixin",
+		"ServerNameResolverMixin"
 	],
 	"injectors": {
 		"defaultRequire": 1

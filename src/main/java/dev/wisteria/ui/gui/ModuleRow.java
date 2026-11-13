@@ -47,15 +47,25 @@ final class ModuleRow {
 		this.path = module.category().name().toLowerCase(Locale.ROOT) + "/" + module.id();
 		this.hint = hint;
 		this.enabled = new Animation(module.isEnabled() ? 1.0F : 0.0F, Animation.NORMAL, Easing.OUT_CUBIC);
-		SettingRow bind = new SettingRows.KeyBinder(module.bind());
-		bind.assignId("setting:" + this.path + "/bind");
-		this.rows.add(bind);
+		if (module.isToggleable()) {
+			SettingRow bind = new SettingRows.KeyBinder(module.bind());
+			bind.assignId("setting:" + this.path + "/bind");
+			this.rows.add(bind);
+		}
+
 		for (Setting<?> setting : module.settings()) {
 			SettingRow row = SettingRows.of(setting);
 			if (row != null) {
 				row.assignId("setting:" + this.path + "/" + setting.id());
 				this.rows.add(row);
 			}
+		}
+
+		// Every module with something to configure can be put back to defaults from here (".reset" in chat).
+		if (module.isToggleable() && module.settings().stream().anyMatch(Setting::persistent)) {
+			SettingRow reset = new ResetRow(module);
+			reset.assignId("reset:" + this.path);
+			this.rows.add(reset);
 		}
 	}
 
@@ -97,8 +107,12 @@ final class ModuleRow {
 		// Modules whose "on" is an open screen (ClickGUI, HUD Editor) swap this screen out; they have their own tests.
 		String note = this.module instanceof ClickGui ? "switching ClickGUI off closes this screen; covered by the Right Shift test"
 			: !this.module.savesEnabled() ? "opens another screen in place of this one; covered by its own test" : null;
-		Controls.State row = controls.register("module:" + this.path, Controls.Kind.TOGGLE, x + 3.0F, y + 1.0F, width - 6.0F - ARROW, HEIGHT - 2.0F,
-			true, () -> this.module.isEnabled() ? "on" : "off", note);
+		Controls.State row = this.module.isToggleable()
+			? controls.register("module:" + this.path, Controls.Kind.TOGGLE, x + 3.0F, y + 1.0F, width - 6.0F - ARROW, HEIGHT - 2.0F,
+				true, () -> this.module.isEnabled() ? "on" : "off", note)
+			// A group of client controls: the whole row opens it.
+			: controls.register("section:" + this.path, Controls.Kind.EXPANDER, x + 3.0F, y + 1.0F, width - 6.0F - ARROW, HEIGHT - 2.0F,
+				() -> this.expanded ? "open" : "closed");
 		Controls.State arrow = controls.register("expand:" + this.path, Controls.Kind.EXPANDER, x + width - 3.0F - ARROW, y + 1.0F, ARROW, HEIGHT - 2.0F,
 			() -> this.expanded ? "open" : "closed");
 		boolean hovered = row.hovered() || arrow.hovered();
@@ -172,8 +186,10 @@ final class ModuleRow {
 			boolean onArrow = px >= this.x + this.width - 3.0F - ARROW;
 			if (button == MouseButton.RIGHT || button == MouseButton.LEFT && onArrow) {
 				this.setExpanded(!this.expanded);
-			} else if (button == MouseButton.LEFT) {
+			} else if (button == MouseButton.LEFT && this.module.isToggleable()) {
 				this.client.setEnabled(this.module, !this.module.isEnabled());
+			} else if (button == MouseButton.LEFT) {
+				this.setExpanded(!this.expanded);
 			}
 
 			return true;
@@ -229,6 +245,55 @@ final class ModuleRow {
 			if (!this.expanded || !row.contains(px, py)) {
 				row.blur();
 			}
+		}
+	}
+
+	/** "Reset to defaults": the module's bind and settings, as .reset does. */
+	private static final class ResetRow extends SettingRow {
+		private final Module module;
+
+		ResetRow(Module module) {
+			super("Defaults", "Puts this module's bind and settings back to their defaults");
+			this.module = module;
+		}
+
+		private boolean changed() {
+			return !this.module.bind().get().equals(this.module.bind().defaultValue())
+				|| this.module.settings().stream().anyMatch(setting -> setting.persistent() && !java.util.Objects.equals(setting.get(), setting.defaultValue()));
+		}
+
+		@Override
+		float height() {
+			return HEIGHT + 2.0F;
+		}
+
+		@Override
+		void render(Ui ui) {
+			boolean changed = this.changed();
+			ui.textInRow(Type.CAPTION, this.label(), this.x, this.y, HEIGHT, ui.theme().textMuted());
+			float width = ActionRows.buttonWidth(ui, "Reset");
+			ActionRows.button(ui, this.id, "Reset", this.x + this.width - width, this.y + 1.0F, width, changed,
+				() -> this.module.settings().stream().map(Setting::format).collect(java.util.stream.Collectors.joining("|")),
+				changed ? "resets the module, which other tests rely on; covered by its own test" : "nothing to reset");
+		}
+
+		@Override
+		boolean mouseDown(float px, float py, MouseButton button) {
+			if (button == MouseButton.LEFT && this.changed() && px >= this.x + this.width - 40.0F) {
+				boolean on = this.module.isEnabled();
+				this.module.bind().reset();
+				for (Setting<?> setting : this.module.settings()) {
+					if (setting.persistent()) {
+						setting.reset();
+					}
+				}
+
+				if (!on) {
+					return true;
+				}
+			}
+
+			return true;
 		}
 	}
 }

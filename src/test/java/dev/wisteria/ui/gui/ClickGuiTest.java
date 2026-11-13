@@ -89,8 +89,8 @@ class ClickGuiTest {
 
 	@Test
 	void showsEveryCategoryThatHasModules() {
-		assertEquals(3, this.screen.panels().size());
-		assertTrue(this.renderer.drew("Render") && this.renderer.drew("Misc") && this.renderer.drew("HUD"));
+		assertEquals(4, this.screen.panels().size());
+		assertTrue(this.renderer.drew("Render") && this.renderer.drew("Misc") && this.renderer.drew("HUD") && this.renderer.drew("Client"));
 		assertTrue(this.renderer.drew("FullBright") && this.renderer.drew("ESP") && this.renderer.drew("Watermark") && this.renderer.drew("ClickGUI"));
 		assertFalse(this.renderer.drew("Combat"), "empty categories get no panel");
 	}
@@ -243,5 +243,14 @@ class ClickGuiTest {
 		this.move(RENDER_X + 40.0F, row(0));
 		this.frame();
 		assertTrue(this.renderer.drew(this.module("fullbright").description()));
+	}
+
+	@Test
+	void switchingProfilesFromTheMenuKeepsItOpen() {
+		this.client.config().create("other");
+		this.client.modules().get("profiles").setting("active").parse("other");
+		assertEquals("other", this.client.config().profile());
+		assertTrue(this.module("clickgui").isEnabled(), "the ClickGUI the switch was made from is still open");
+		assertNotNull(this.platform.openScreen);
 	}
 }

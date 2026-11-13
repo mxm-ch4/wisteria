@@ -7,7 +7,8 @@ public enum Category {
 	MOVEMENT("Movement"),
 	COMBAT("Combat"),
 	MISC("Misc"),
-	HUD("HUD");
+	HUD("HUD"),
+	CLIENT("Client");
 
 	private final String title;
 

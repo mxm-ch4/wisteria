@@ -26,6 +26,7 @@ public final class CommandManager {
 	private final Map<String, Command> byAlias = new LinkedHashMap<>();
 	private final List<Runnable> changeListeners = new CopyOnWriteArrayList<>();
 	private String prefix = DEFAULT_PREFIX;
+	private java.util.function.BooleanSupplier enabled = () -> true;
 
 	public CommandManager(Client client) {
 		this.client = client;
@@ -85,13 +86,55 @@ public final class CommandManager {
 	 *
 	 * @return true if the message was a client command and must not be sent to the server
 	 */
+	/** Chat commands run while this says so (the Chat section's switch); prefixed text is held back either way. */
+	public void enabledWhen(java.util.function.BooleanSupplier enabled) {
+		this.enabled = enabled;
+	}
+
+	/**
+	 * Called for every line sent from the chat box. Anything that starts with the prefix stays in the client, even
+	 * when commands are off, the command is unknown, the line is just the prefix, or the command fails.
+	 *
+	 * @return true if the line must not be sent to the server
+	 */
 	public boolean handleChat(String message) {
-		if (!message.startsWith(this.prefix) || message.length() == this.prefix.length()) {
+		if (!message.startsWith(this.prefix)) {
 			return false;
 		}
 
-		this.execute(message.substring(this.prefix.length()), this.client.platform().chat()::print);
+		try {
+			if (!this.enabled.getAsBoolean()) {
+				this.client.platform().chat().print("Chat commands are off (Client → Chat); nothing was sent to the server");
+			} else if (message.length() > this.prefix.length()) {
+				this.execute(message.substring(this.prefix.length()), this.client.platform().chat()::print);
+			}
+		} catch (RuntimeException e) {
+			Wisteria.LOG.error("Chat command failed", e);
+		}
+
 		return true;
+	}
+
+	/**
+	 * Runs a command line (without the prefix) for the menu's buttons.
+	 *
+	 * @throws IllegalArgumentException with the command's own message when it rejects the input
+	 */
+	public void run(String line) {
+		List<String> errors = new ArrayList<>();
+		List<String> lines = new ArrayList<>();
+		this.execute(line, lines::add);
+		Command command = this.byAlias.get(tokenize(line).isEmpty() ? "" : tokenize(line).get(0).toLowerCase(Locale.ROOT));
+		for (String printed : lines) {
+			this.client.platform().chat().print(printed);
+			if (printed.startsWith("Usage:") || printed.startsWith("Unknown command")) {
+				errors.add(printed);
+			}
+		}
+
+		if (!errors.isEmpty() && command != null) {
+			throw new IllegalArgumentException(errors.getFirst());
+		}
 	}
 
 	/** Runs a command line given without the prefix. Never throws: problems are reported through {@code out}. */

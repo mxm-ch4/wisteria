@@ -51,6 +51,11 @@ ClickGUI, бинды, сохранение включённости и наст�
 | `ColorSetting` | default ARGB (`0xFFB79CFF`) | выбор цвета |
 | `KeySetting` | — или default `Key` | запись клавиши |
 | `StringSetting` | default, maxLength | текстовое поле |
+| `ActionSetting` | надпись кнопки, действие | кнопка (не сохраняется) |
+| `InputSetting` | подсказка, надпись, действие(текст) | поле и кнопка; ошибку действия (`IllegalArgumentException`) видно под полем |
+| `ListSetting` | подсказка, список, добавить, удалить | поле Add и строки с кнопкой удаления; данные хранит тот, кто их дал |
+| `PasswordSetting` | «задано ли», сохранить | поле с точками; из чата не принимается, не сохраняется в профиле |
+| `ChoiceSetting` | default, варианты, сохранять ли | выпадающий список с вариантами на лету |
 
 Реакция на изменение — `setting.onChange(value -> ...)`.
 **Дефолты — в пределах Grim.** Агрессивное — отдельный `BoolSetting`, по умолчанию `false`, описание начинается с «Experimental:».
@@ -109,18 +114,20 @@ ClickGUI, бинды, сохранение включённости и наст�
 
 Только через ядро; `java.io`/`java.nio.file`, `HttpClient`, `System.getenv` в модулях запрещены.
 
-- **Файлы** — `this.storage()`: папка модуля `.minecraft/wisteria/data/<id>/`. `readText`/`writeText`, `readBytes`/`writeBytes`,
+- **Файлы** — `this.storage()`: папка модуля в активном профиле, `.minecraft/wisteria/profiles/<профиль>/data/<id>/`;
+  при смене профиля — уже другая папка. `readText`/`writeText`, `readBytes`/`writeBytes`,
   `readJson`/`writeJson`, `list()`, `delete`, `file("db/x.sqlite")` — путь для библиотек, открывающих файл сами.
   Имена — относительные (`cache/r.0.0.json`), `..` и абсолютные пути отклоняются. Запись атомарная.
   Крупное — не на клиентском потоке. `export(name, bytes)` кладёт выгрузку для пользователя в `.minecraft/wisteria/exports/`.
-- **Секреты** — `this.secret("TELEGRAM_BOT_TOKEN")` → `Optional<Secret>` из `.minecraft/wisteria/.env` (`ИМЯ=значение`).
+- **Секреты** — `this.secret("TELEGRAM_BOT_TOKEN")` → `Optional<Secret>` из `.minecraft/wisteria/.env` (`ИМЯ=значение`;
+  в профиле, кроме `default`, — `ИМЯ@профиль`, без подстановки чужого).
   Значение модулю не выдаётся: `Secret` печатается как `****`, подставляется в запрос сам. Всё, что клиент пишет в чат
   и лог, чистится от значений секретов.
 - **Сеть** — `this.send(Net.Request.post("https://api.telegram.org/bot{token}/sendMessage").secret("token", token).json(body))`
   → `CompletableFuture<Net.Response>`, завершается **не на клиентском потоке**: обратно — `thenAcceptAsync(r -> ..., this.platform()::execute)`.
   Только HTTPS и только хосты, которые пользователь разрешил командой `.net allow <хост>` (по умолчанию — никакие).
   Таймаут 10 с, 2 повтора при сетевой ошибке, 5xx и 429; после 3 провалов подряд сеть модуля выключается на 5 минут
-  с сообщением в чат.
+  с сообщением в чат. Пока в профиле включён прокси, сеть клиента выключена целиком (`docs/proxy.md`).
 
 **Исключения** — кому что можно (`io.Permission`, меняется только задачей на ядро вместе с этим списком).
 Остальным модулям вызов бросает `SecurityException`.
@@ -182,4 +189,4 @@ if (nuker != null && nuker.isEnabled()) { ... }                // или modules
 ## Стабильность
 
 Всё перечисленное здесь — замороженный API: `Module` и его хелперы, классы настроек, `Events`, `Renderer2D`/`Renderer3D`,
-`BoxBatch`, `HudElement`, `HudContext`, `Toasts`, `Storage`, `Secret`, `Net`, `Permission`, `GameTestKit`, `ModuleGameTest`, `FakePlatform`. Изменения в них — только отдельной задачей на ядро, с обновлением этого файла.
+`BoxBatch`, `HudElement`, `HudContext`, `Toasts`, новые типы настроек, `Storage` (папка профиля), `Secret`, `Net`, `Permission`, `GameTestKit`, `ModuleGameTest`, `FakePlatform`. Изменения в них — только отдельной задачей на ядро, с обновлением этого файла.

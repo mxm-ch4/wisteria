@@ -44,6 +44,10 @@ dependencies {
 	implementation "net.fabricmc:fabric-loader:${project.loader_version}"
 	implementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
 
+	// SOCKS5 and HTTP CONNECT for the game's connection (Apache-2.0); the game ships the rest of Netty, not these two.
+	include(implementation("io.netty:netty-handler-proxy:4.2.15.Final") { transitive = false })
+	include(implementation("io.netty:netty-codec-socks:4.2.15.Final") { transitive = false })
+
 	testImplementation platform('org.junit:junit-bom:5.13.4')
 	testImplementation 'org.junit.jupiter:junit-jupiter'
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'

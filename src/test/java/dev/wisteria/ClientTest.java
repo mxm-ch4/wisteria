@@ -65,9 +65,10 @@ class ClientTest {
 	@Test
 	void theFirstModulesAreRegistered() {
 		assertEquals(List.of("fullbright", "esp", "clickgui", "watermark", "arraylist", "coordinates", "direction", "fps", "tps",
-			"target", "potions", "notifications", "keybinds", "hudeditor"), this.client.modules().all().stream().map(Module::id).toList());
+			"target", "potions", "notifications", "keybinds", "proxystatus", "hudeditor", "proxy", "profiles", "friends", "network", "chat",
+			"interface", "tools"), this.client.modules().all().stream().map(Module::id).toList());
 		assertEquals(2, this.client.modules().in(Category.RENDER).size());
-		assertEquals(11, this.client.modules().in(Category.HUD).size());
+		assertEquals(12, this.client.modules().in(Category.HUD).size());
 		assertTrue(this.client.modules().enabled().isEmpty());
 		assertNotNull(this.client.modules().get("FullBright"));
 		assertNull(this.client.modules().get("killaura"));
@@ -169,7 +170,7 @@ class ClientTest {
 	@Test
 	void onlyPrefixedChatIsSwallowed() {
 		assertFalse(this.platform.typeInChat("hello there"));
-		assertFalse(this.platform.typeInChat("."));
+		assertTrue(this.platform.typeInChat("."), "even the bare prefix stays in the client");
 		assertTrue(this.platform.chatLines.isEmpty());
 
 		assertTrue(this.platform.typeInChat(".toggle esp"));
@@ -238,14 +239,14 @@ class ClientTest {
 
 		ChatBackend.Completion commands = this.platform.tab(".t");
 		assertEquals(1, commands.start());
-		assertEquals(List.of("target", "theme", "toggle", "tps"), commands.candidates(), "commands and module names");
-		assertEquals(List.of("toggle"), this.platform.tab(".to").candidates());
+		assertEquals(List.of("target", "theme", "toggle", "tools", "tps"), commands.candidates(), "commands and module names");
+		assertEquals(List.of("toggle"), this.platform.tab(".tog").candidates());
 		assertTrue(this.platform.tab(".").candidates().containsAll(List.of("help", "esp", "fullbright", "profile")));
 
 		ChatBackend.Completion modules = this.platform.tab(".toggle ");
 		assertEquals(8, modules.start());
 		assertEquals(List.of("arraylist", "clickgui", "coordinates", "direction", "esp", "fps", "fullbright", "hudeditor", "keybinds",
-			"notifications", "potions", "target", "tps", "watermark"), modules.candidates());
+			"notifications", "potions", "proxy", "proxystatus", "target", "tps", "watermark"), modules.candidates(), "only what switches on");
 		assertEquals(List.of("fullbright"), this.platform.tab(".toggle fu").candidates());
 		assertEquals(List.of("off", "on"), this.platform.tab(".toggle esp ").candidates());
 

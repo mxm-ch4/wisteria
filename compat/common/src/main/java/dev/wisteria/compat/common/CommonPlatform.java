@@ -59,6 +59,7 @@ public abstract class CommonPlatform implements Platform {
 		});
 
 		ClientTickEvents.END_CLIENT_TICK.register(minecraft -> {
+			this.screens.tick();
 			for (ClientListener listener : this.listeners) {
 				listener.onTick();
 			}

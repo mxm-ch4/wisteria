@@ -236,7 +236,8 @@ class ClientTest {
 
 		ChatBackend.Completion commands = this.platform.tab(".t");
 		assertEquals(1, commands.start());
-		assertEquals(List.of("toggle"), commands.candidates());
+		assertEquals(List.of("theme", "toggle"), commands.candidates());
+		assertEquals(List.of("toggle"), this.platform.tab(".to").candidates());
 		assertTrue(this.platform.tab(".").candidates().containsAll(List.of("help", "esp", "fullbright", "profile")));
 
 		ChatBackend.Completion modules = this.platform.tab(".toggle ");

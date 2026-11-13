@@ -5,21 +5,35 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
+import org.jspecify.annotations.Nullable;
 
 public final class CommonScreens implements ScreenBackend {
 	private final CommonPlatform platform;
+	private volatile @Nullable ClientScreen pending;
 
 	CommonScreens(CommonPlatform platform) {
 		this.platform = platform;
 	}
 
+	// Deferred to the next tick: a screen opened from a chat command would otherwise be closed at once
+	// by the chat box, which closes "the current screen" right after sending.
 	@Override
 	public void open(ClientScreen screen) {
-		Minecraft.getInstance().execute(() -> this.platform.setScreen(new Host(this.platform, screen)));
+		this.pending = screen;
+	}
+
+	/** Called at the end of every client tick. */
+	void tick() {
+		ClientScreen screen = this.pending;
+		if (screen != null) {
+			this.pending = null;
+			this.platform.setScreen(new Host(this.platform, screen));
+		}
 	}
 
 	@Override
 	public void close() {
+		this.pending = null;
 		Minecraft.getInstance().execute(() -> {
 			if (this.platform.currentScreen() instanceof Host) {
 				this.platform.setScreen(null);
@@ -29,7 +43,7 @@ public final class CommonScreens implements ScreenBackend {
 
 	@Override
 	public boolean isAnyOpen() {
-		return this.platform.currentScreen() != null;
+		return this.pending != null || this.platform.currentScreen() != null;
 	}
 
 	/** The game screen that hosts a client screen. Input forwarding comes with the GUI stage. */

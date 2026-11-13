@@ -7,7 +7,10 @@ import dev.wisteria.config.ConfigManager;
 import dev.wisteria.module.Category;
 import dev.wisteria.module.Module;
 import dev.wisteria.setting.Setting;
+import dev.wisteria.setting.ColorSetting;
 import dev.wisteria.social.Relations;
+import dev.wisteria.ui.DesignScreen;
+import dev.wisteria.ui.ThemeManager;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -30,6 +33,8 @@ final class Commands {
 		manager.register(new Relation("enemy", List.of(), Relations.Relation.ENEMY, "enemies"));
 		manager.register(new Profile());
 		manager.register(new Prefix());
+		manager.register(new ThemeCommand());
+		manager.register(new Design());
 	}
 
 	private static Module module(Client client, String name) {
@@ -425,6 +430,52 @@ final class Commands {
 			}
 
 			out.print("Command prefix: " + client.commands().prefix());
+		}
+	}
+
+	private static final class ThemeCommand extends Command {
+		ThemeCommand() {
+			super("theme", List.of(), "[preset] / accent <#colour>", "Shows or changes the interface theme");
+		}
+
+		@Override
+		public void run(Client client, List<String> args, Output out) {
+			ThemeManager themes = client.themes();
+			if (args.size() == 2 && args.get(0).equalsIgnoreCase("accent")) {
+				themes.useAccent(ColorSetting.fromHex(args.get(1)));
+				out.print("Accent: " + ColorSetting.toHex(themes.current().accent()));
+			} else if (args.size() == 1 && !args.get(0).equalsIgnoreCase("accent")) {
+				themes.usePreset(args.get(0));
+				out.print("Theme: " + themes.current().name());
+			} else if (args.isEmpty()) {
+				Integer accent = themes.customAccent();
+				out.print("Theme: " + themes.current().name() + (accent != null ? " with accent " + ColorSetting.toHex(accent) : "")
+					+ ". Presets: " + String.join(", ", themes.presetIds()));
+			} else {
+				throw new CommandException("Usage: " + client.commands().prefix() + "theme " + this.usage());
+			}
+		}
+
+		@Override
+		public List<String> complete(Client client, List<String> args) {
+			if (args.size() != 1) {
+				return List.of();
+			}
+
+			List<String> candidates = new ArrayList<>(client.themes().presetIds());
+			candidates.add("accent");
+			return candidates;
+		}
+	}
+
+	private static final class Design extends Command {
+		Design() {
+			super("design", List.of(), "", "Opens the design system reference screen");
+		}
+
+		@Override
+		public void run(Client client, List<String> args, Output out) {
+			client.platform().screens().open(new DesignScreen(client));
 		}
 	}
 }

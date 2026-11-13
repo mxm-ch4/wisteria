@@ -6,7 +6,7 @@
   <img alt="Minecraft 26.1 – 26.3" src="https://img.shields.io/badge/Minecraft-26.1%20–%2026.3-B79CFF?style=flat-square&labelColor=17131F">
   <img alt="Loader: Fabric" src="https://img.shields.io/badge/Loader-Fabric-B79CFF?style=flat-square&labelColor=17131F">
   <img alt="Java 25" src="https://img.shields.io/badge/Java-25-B79CFF?style=flat-square&labelColor=17131F">
-  <img alt="Статус: этап 1 пройден" src="https://img.shields.io/badge/Статус-этап%201%20пройден-8B6CFF?style=flat-square&labelColor=17131F">
+  <img alt="Статус: этап 2 пройден" src="https://img.shields.io/badge/Статус-этап%202%20пройден-8B6CFF?style=flat-square&labelColor=17131F">
   <a href="LICENSE"><img alt="License: GPL-3.0" src="https://img.shields.io/badge/License-GPL--3.0-E9D8FF?style=flat-square&labelColor=17131F"></a>
 </p>
 
@@ -26,9 +26,9 @@
 </p>
 
 > [!NOTE]
-> Проект на старте. Готово ядро: модули, настройки, конфиги с профилями и команды в чате, собирается под 26.1.2,
-> 26.2 и 26.3. Модулей пока три, и они простые (FullBright, ESP, Watermark); своего GUI и HUD ещё нет.
-> Релизов нет — собирать из исходников.
+> Проект на старте. Готовы ядро (модули, настройки, конфиги с профилями, команды в чате) и дизайн-система
+> (темы, свои шрифты, анимации); собирается под 26.1.2, 26.2 и 26.3. Модулей пока три, и они простые
+> (FullBright, ESP, Watermark); ClickGUI и HUD ещё нет. Релизов нет — собирать из исходников.
 
 <p align="center"><img src="assets/divider.svg" width="100%" alt=""></p>
 
@@ -66,8 +66,10 @@ OpenGL ↔ Vulkan, и всё, что написано в обход абстра
 
 <p align="center"><img src="assets/palette.svg" width="100%" alt="Палитра Wisteria"></p>
 
-Тёмная база и лавандовый акцент. Это рабочий вариант для бренда и README; в код он попадёт
-на этапе 2 вместе с `docs/design-system.md`, там же появятся состояния, градиенты и семантические цвета.
+Тёмная база и лавандовый акцент. В клиенте это тема по умолчанию; роли цветов, состояния, остальные пресеты
+и правила — в [дизайн-системе](docs/design-system.md).
+
+<p align="center"><img src="docs/stage2/design-system.png" width="100%" alt="Экран-справочник дизайн-системы в игре, темы Wisteria и Mint"></p>
 
 <details>
 <summary>Токены текстом</summary>
@@ -98,8 +100,8 @@ OpenGL ↔ Vulkan, и всё, что написано в обход абстра
 |:---:|---|---|:---:|
 | **0** | Разведка | Рендер, события и звук проверены вживую; сборка под три версии — [находки](docs/stage0-findings.md) | ✅ |
 | **1** | Ядро поверх compat | Модули, настройки, события, конфиги с профилями, чат-команды, друзья/враги — [как устроено](docs/core.md) | ✅ |
-| **2** | Дизайн-система | Палитра, шрифты, спейсинг, motion, эффекты и демо-экран со всеми компонентами | ⏳ следующий |
-| **3** | GUI | ClickGUI, компоненты, темы, сплэш | — |
+| **2** | Дизайн-система | Темы, шрифты, отступы, движение, эффекты одним шейдером и экран-справочник — [как устроено](docs/design-system.md) | ✅ |
+| **3** | GUI | ClickGUI, компоненты, темы, сплэш | ⏳ следующий |
 | **4** | HUD | `HudManager`, элементы, редактор расположения | — |
 | **5** | Музыка | Плеер, HUD-виджет, хоткеи, звуки интерфейса | — |
 | **6** | Флагманы | Xray Quality, BaseFinder Intel, база находок | — |
@@ -187,6 +189,8 @@ tools/gate.sh 26_2 VULKAN
 .bind esp g                  повесить на клавишу
 .esp range 48                изменить настройку
 .profile save mining         сохранить набор настроек под именем
+.theme mint                  сменить тему; .theme accent #336699 — свой акцент
+.design                      экран-справочник дизайн-системы
 ```
 
 ## Оговорки
@@ -203,7 +207,7 @@ tools/gate.sh 26_2 VULKAN
 
 ```
 core/  compat/     код, см. «Архитектура»
-docs/              ядро и команды, находки этапа 0, матрица версий, Grim-матрица
+docs/              ядро и команды, дизайн-система, находки этапа 0, матрица версий, Grim-матрица
 tools/gate.sh      шлюз версии без монитора
 tools/brand/       генератор SVG из assets/
 assets/            логотип, баннер, палитра
@@ -242,7 +246,8 @@ python3 tools/brand/generate.py
 
 ## Лицензия
 
-[GPL-3.0](LICENSE). Wisteria — независимый проект, не связанный с Mojang и Microsoft.
+[GPL-3.0](LICENSE). В jar входят шрифты Inter и JetBrains Mono под SIL OFL 1.1 — их лицензия лежит рядом
+(`LICENSE_fonts.txt`). Wisteria — независимый проект, не связанный с Mojang и Microsoft.
 Minecraft — товарный знак Mojang Synergies AB.
 
 <p align="center"><img src="assets/divider.svg" width="100%" alt=""></p>

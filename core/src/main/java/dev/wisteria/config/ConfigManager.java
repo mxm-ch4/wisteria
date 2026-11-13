@@ -8,7 +8,9 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParseException;
 import dev.wisteria.Client;
 import dev.wisteria.Wisteria;
+import dev.wisteria.command.CommandManager;
 import dev.wisteria.module.Module;
+import dev.wisteria.setting.ColorSetting;
 import dev.wisteria.setting.Setting;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -26,7 +28,7 @@ import org.jspecify.annotations.Nullable;
 /**
  * Everything that survives a restart, as JSON under {@code .minecraft/wisteria/}:
  * <ul>
- * <li>{@code client.json}: the active profile and the command prefix;</li>
+ * <li>{@code client.json}: the active profile, the command prefix and the theme;</li>
  * <li>{@code social.json}: friends and enemies, shared by all profiles;</li>
  * <li>{@code profiles/<name>.json}: which modules are on, their binds and settings.</li>
  * </ul>
@@ -80,9 +82,21 @@ public final class ConfigManager {
 				}
 
 				String prefix = string(clientJson, "prefix");
-				if (prefix != null) {
+				if (prefix != null && CommandManager.isValidPrefix(prefix)) {
 					this.client.commands().setPrefix(prefix);
 				}
+
+				Integer accent = null;
+				String accentHex = string(clientJson, "accent");
+				if (accentHex != null) {
+					try {
+						accent = ColorSetting.fromHex(accentHex);
+					} catch (IllegalArgumentException ignored) {
+						// keep the preset's own accent
+					}
+				}
+
+				this.client.themes().load(string(clientJson, "theme"), accent);
 			}
 
 			JsonObject social = this.read(this.directory.resolve("social.json"));
@@ -124,6 +138,9 @@ public final class ConfigManager {
 			JsonObject clientJson = new JsonObject();
 			clientJson.addProperty("profile", this.profile);
 			clientJson.addProperty("prefix", this.client.commands().prefix());
+			clientJson.addProperty("theme", this.client.themes().presetId());
+			Integer accent = this.client.themes().customAccent();
+			clientJson.addProperty("accent", accent != null ? ColorSetting.toHex(accent) : null);
 			this.write(this.directory.resolve("client.json"), clientJson);
 
 			JsonObject social = new JsonObject();

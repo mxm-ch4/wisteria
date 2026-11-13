@@ -15,12 +15,14 @@ import dev.wisteria.module.impl.EntityEsp;
 import dev.wisteria.module.impl.FullBright;
 import dev.wisteria.module.impl.Watermark;
 import dev.wisteria.social.Relations;
+import dev.wisteria.ui.ThemeManager;
 
 /** The running client: one per game session. Wires the game's callbacks to the event bus and owns the managers. */
 public final class Client {
 	private final Platform platform;
 	private final EventBus bus = new EventBus();
 	private final Relations relations = new Relations();
+	private final ThemeManager themes = new ThemeManager();
 	private final ModuleManager modules;
 	private final CommandManager commands;
 	private final ConfigManager config;
@@ -52,6 +54,7 @@ public final class Client {
 		this.modules.onChange(this.config::markDirty);
 		this.relations.onChange(this.config::markDirty);
 		this.commands.onChange(this.config::markDirty);
+		this.themes.onChange(this.config::markDirty);
 		this.bridge();
 	}
 
@@ -125,6 +128,10 @@ public final class Client {
 
 	public Relations relations() {
 		return this.relations;
+	}
+
+	public ThemeManager themes() {
+		return this.themes;
 	}
 
 	public ModuleManager modules() {

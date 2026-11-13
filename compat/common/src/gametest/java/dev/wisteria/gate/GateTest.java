@@ -197,6 +197,27 @@ public final class GateTest implements FabricClientGameTest {
 		check("core: FullBright brightens the world", lit > dark * 3 / 2 && lit > dark + 15);
 		this.chat(context, ".toggle fullbright off");
 
+		// The design system reference screen, and a theme switch applied while it is open.
+		singleplayer.getServer().runCommand("time set noon");
+		this.chat(context, ".design");
+		context.waitTicks(20);
+		check("design: screen open", context.computeOnClient(minecraft -> platform.screens().isAnyOpen()));
+		Frame design = this.grabLastFrame(context, platform, "gate-design");
+		float panelX = Math.round((probe.guiWidth - 408.0F) / 2.0F);
+		float panelY = Math.round((design.height / scale - 222.0F) / 2.0F);
+		int swatch = design.at((panelX + 61.0F) * scale, (panelY + 92.0F) * scale);
+		LOG.info("design: accent swatch is #{}", Integer.toHexString(swatch));
+		check("design: panel drawn", luminance(design.at((panelX + 204.0F) * scale, (panelY + 200.0F) * scale)) < 70);
+		check("design: accent swatch in the theme's accent", distance(swatch, 0xFFB79CFF) < 30);
+		this.chat(context, ".theme mint");
+		context.waitTicks(5);
+		Frame mint = this.grabLastFrame(context, platform, "gate-design-mint");
+		int mintSwatch = mint.at((panelX + 61.0F) * scale, (panelY + 92.0F) * scale);
+		LOG.info("design: after .theme mint the swatch is #{}", Integer.toHexString(mintSwatch));
+		check("design: theme switch applies at once", distance(mintSwatch, 0xFF7FE3BC) < 30);
+		context.runOnClient(minecraft -> platform.screens().close());
+		context.waitTicks(5);
+
 		// Left for the second launch to verify.
 		this.chat(context, ".friend add GateFriend");
 		this.chat(context, ".profile save gate");
@@ -218,6 +239,7 @@ public final class GateTest implements FabricClientGameTest {
 			check("restart: ESP colour", "#FF8B6CFF".equals(client.modules().get("esp").setting("passive-color").format()));
 			check("restart: FullBright off", !client.modules().get("fullbright").isEnabled());
 			check("restart: friend", client.relations().isFriend("GateFriend"));
+			check("restart: theme", "mint".equals(client.themes().presetId()));
 		});
 		LOG.info("gate restart check passed: Minecraft {} on {}", platform.minecraftVersion(), platform.graphicsBackend());
 	}

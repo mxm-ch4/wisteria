@@ -2,7 +2,10 @@ package dev.wisteria.compat;
 
 /** Full-screen client UI (ClickGUI, HUD editor) hosted in a game screen. */
 public interface ScreenBackend {
-	/** Opens a screen drawn by the client; replaces whatever screen is open. */
+	/**
+	 * Opens a screen drawn by the client, replacing whatever screen is open. It appears on the next tick,
+	 * so this is safe to call from a chat command while the chat box is still closing.
+	 */
 	void open(ClientScreen screen);
 
 	/** Closes the client screen if one is open. */

@@ -42,7 +42,7 @@ public final class Controls {
 	 * @param note why a walker must not click it, or null
 	 */
 	public record Control(String id, String group, Kind kind, float x, float y, float width, float height,
-		boolean enabled, boolean visible, Supplier<String> state, @Nullable String note) {
+		boolean enabled, boolean visible, boolean whole, Supplier<String> state, @Nullable String note) {
 		public boolean contains(float px, float py) {
 			return Ui.inside(px, py, this.x, this.y, this.width, this.height);
 		}
@@ -148,7 +148,10 @@ public final class Controls {
 		float cy = y + height / 2.0F;
 		boolean visible = width > 0.5F && height > 0.5F
 			&& (clip == null || (cx >= clip[0] && cx < clip[2] && cy >= clip[1] && cy < clip[3]));
-		this.building.add(new Control(id, this.group(), kind, x, y, width, height, enabled, visible, state, note));
+		// Whole: entirely inside its clip, so a click anywhere on it lands on it (the click walk scrolls until then).
+		boolean whole = visible && (clip == null || (x >= clip[0] - 0.5F && x + width <= clip[2] + 0.5F && y >= clip[1] - 0.5F && y + height <= clip[3] + 0.5F)
+			|| height > clip[3] - clip[1]);
+		this.building.add(new Control(id, this.group(), kind, x, y, width, height, enabled, visible, whole, state, note));
 		boolean hovered = visible && id.equals(this.hoveredId) && Ui.inside(this.mouseX, this.mouseY, x, y, width, height);
 		boolean pressed = enabled && id.equals(this.pressedId);
 		return new State(hovered && enabled, pressed, enabled);

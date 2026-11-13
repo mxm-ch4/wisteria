@@ -24,7 +24,29 @@ public interface WorldBackend {
 	 * @param x feet position, centre of the hitbox
 	 * @param self true for the player themself
 	 */
-	record Entity(int id, EntityKind kind, String name, double x, double y, double z, float width, float height, boolean self) {
+	/**
+	 * Containers (chests, barrels, shulker boxes, ender chests, hoppers, furnaces…) in loaded chunks within
+	 * {@code range} blocks of a point. Nearest first, at most {@code limit}.
+	 */
+	default List<Container> containers(double x, double y, double z, double range, int limit) {
+		return List.of();
+	}
+
+	/** One container block: its position and its block id, e.g. "minecraft:chest". */
+	record Container(int x, int y, int z, String block) {
+	}
+
+	/**
+	 * @param eyeHeight from the feet
+	 * @param lookX unit vector the entity looks along
+	 */
+	record Entity(int id, EntityKind kind, String name, double x, double y, double z, float width, float height, boolean self,
+		float eyeHeight, double lookX, double lookY, double lookZ) {
+		/** Without a gaze: eyes at 85% of the height, looking south. */
+		public Entity(int id, EntityKind kind, String name, double x, double y, double z, float width, float height, boolean self) {
+			this(id, kind, name, x, y, z, width, height, self, height * 0.85F, 0.0, 0.0, 1.0);
+		}
+
 		public double distanceTo(double px, double py, double pz) {
 			double dx = this.x - px;
 			double dy = this.y - py;

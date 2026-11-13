@@ -56,6 +56,14 @@ public final class ClickEverythingGameTest implements FabricClientGameTest {
 		public String state(Controls.Control control) {
 			return this.context.computeOnClient(minecraft -> control.state().get());
 		}
+
+		@Override
+		public void scroll(float x, float y, float amount) {
+			this.context.getInput().setCursorPos(x * this.scale, y * this.scale);
+			this.context.waitTicks(1);
+			this.context.getInput().scroll(amount);
+			this.context.waitTicks(3);
+		}
 	}
 
 	@Override

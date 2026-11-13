@@ -7,10 +7,12 @@
 		"ClientLevelMixin",
 		"ClientPacketListenerMixin",
 		"CommandSuggestionsMixin",
+		"EntityRendererMixin",
 		"GuiMixin",
 		"ConnectionMixin",
 		"KeyboardHandlerMixin",
 		"LightmapMixin",
+		"LivingEntityRendererMixin",
 		"MultiPlayerGameModeMixin"
 	],
 	"injectors": {

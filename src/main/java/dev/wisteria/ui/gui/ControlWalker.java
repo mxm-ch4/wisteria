@@ -27,6 +27,14 @@ public final class ControlWalker {
 
 		/** Reads the control's state on the thread that owns it. */
 		String state(Control control);
+
+		/**
+		 * Turns the mouse wheel over a point, to bring controls scrolled out of view into it.
+		 *
+		 * @param amount positive to scroll up
+		 */
+		default void scroll(float x, float y, float amount) {
+		}
 	}
 
 	/**
@@ -67,20 +75,32 @@ public final class ControlWalker {
 	}
 
 	private void walkGroup(String group) {
+		int scrolls = 0;
 		while (true) {
 			Control next = null;
 			List<String> hidden = new ArrayList<>();
-			for (Control control : this.driver.controls()) {
+			List<Control> controls = this.driver.controls();
+			for (Control control : controls) {
 				if (!control.group().equals(group) || this.done.contains(control.id())) {
 					continue;
 				}
 
-				if (control.visible()) {
+				if (control.visible() && control.whole()) {
 					next = control;
 					break;
 				}
 
 				hidden.add(control.id());
+			}
+
+			// Out of view: scroll the panel towards it, down first, then back up, as a player would.
+			if (next == null && !hidden.isEmpty() && scrolls < 2 * MAX_SCROLLS) {
+				Control over = this.scrollTarget(controls, group);
+				if (over != null) {
+					this.driver.scroll(over.centerX(), over.centerY(), scrolls < MAX_SCROLLS ? -1.0F : 1.0F);
+					scrolls++;
+					continue;
+				}
 			}
 
 			if (next == null) {
@@ -100,6 +120,49 @@ public final class ControlWalker {
 
 			this.operate(next);
 		}
+	}
+
+	private static final int MAX_SCROLLS = 60;
+
+	/** The control, scrolled until it is entirely in view (up first: walking a group leaves it scrolled down). */
+	private @org.jspecify.annotations.Nullable Control reveal(String id) {
+		for (int scrolls = 0; scrolls <= 2 * MAX_SCROLLS; scrolls++) {
+			Control control = this.find(id);
+			if (control == null || control.visible() && control.whole()) {
+				return control;
+			}
+
+			Control over = this.scrollTarget(this.driver.controls(), control.group());
+			if (over == null) {
+				return control;
+			}
+
+			this.driver.scroll(over.centerX(), over.centerY(), scrolls < MAX_SCROLLS ? 1.0F : -1.0F);
+		}
+
+		return this.find(id);
+	}
+
+	// Somewhere inside the scrolling area that holds the group: one of its visible controls, or its header.
+	private @org.jspecify.annotations.Nullable Control scrollTarget(List<Control> controls, String group) {
+		Control header = null;
+		for (Control control : controls) {
+			if (control.group().equals(group) && control.visible() && control.whole()) {
+				return control;
+			}
+
+			if (control.id().equals(group)) {
+				header = control;
+			}
+		}
+
+		if (header == null) {
+			return null;
+		}
+
+		// The header itself does not scroll; aim just below it, into the body.
+		return new Control(header.id(), header.group(), header.kind(), header.x(), header.y() + header.height() + 4.0F, header.width(), 2.0F,
+			true, true, true, header.state(), null);
 	}
 
 	private void click(Control control, float fx, float fy, MouseButton button) {
@@ -148,7 +211,7 @@ public final class ControlWalker {
 				this.click(control, 0.5F, 0.5F, MouseButton.LEFT);
 				this.expect(control, !Objects.equals(before, this.driver.state(control)), "click did not open it");
 				this.walkGroup(control.id());
-				Control again = this.find(control.id());
+				Control again = this.reveal(control.id());
 				if (again != null && !Objects.equals(before, this.driver.state(again))) {
 					this.click(again, 0.5F, 0.5F, MouseButton.LEFT);
 					this.expect(control, Objects.equals(before, this.driver.state(again)), "click did not close it");

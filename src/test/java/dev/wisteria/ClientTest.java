@@ -360,7 +360,7 @@ class ClientTest {
 		assertFalse(esp.isEnabled());
 		assertEquals(Optional.empty(), esp.bind().get());
 		assertEquals("256", esp.setting("range").format());
-		assertEquals("40", esp.setting("fill").format());
+		assertEquals("40", esp.setting("box-fill").format());
 		assertTrue(this.module("watermark").isEnabled());
 		assertTrue(this.module("watermark").bind().matches(Key.F7));
 		assertEquals("2.12", this.module("watermark").setting("scale").format(), "snapped to the 0.01 step");

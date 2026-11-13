@@ -18,6 +18,7 @@ import java.util.List;
 public final class FakePlatform implements Platform {
 	public final List<String> chatLines = new ArrayList<>();
 	public final List<WorldBackend.Entity> entities = new ArrayList<>();
+	public final List<WorldBackend.Container> containers = new ArrayList<>();
 	public float brightness;
 	public boolean worldLoaded = true;
 	public String clipboard = "";
@@ -209,6 +210,11 @@ public final class FakePlatform implements Platform {
 			@Override
 			public List<Entity> entities(float tickDelta) {
 				return List.copyOf(FakePlatform.this.entities);
+			}
+
+			@Override
+			public List<Container> containers(double x, double y, double z, double range, int limit) {
+				return FakePlatform.this.containers.stream().limit(limit).toList();
 			}
 		};
 	}

@@ -26,6 +26,14 @@ public final class GameTestKit {
 	}
 
 	/** A fresh world with its chunks rendered. Close it (try-with-resources) to get back to the title screen. */
+	/** Hides the gate's own diagnostic panels (or shows them again), for frames that look at the HUD or the world. */
+	public static void hideProbe(boolean hidden) {
+		GateProbe probe = GateProbe.current;
+		if (probe != null) {
+			probe.hidden = hidden;
+		}
+	}
+
 	public static TestSingleplayerContext newWorld(ClientGameTestContext context) {
 		TestSingleplayerContext world = context.worldBuilder().create();
 		GateHooks.waitForWorld(world);

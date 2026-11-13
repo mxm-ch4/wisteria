@@ -52,7 +52,8 @@ class ClickEverythingTest {
 		}
 
 		private void frames() {
-			for (int i = 0; i < 2; i++) {
+			// Four frames: a panel settles its scroll a frame after its content changes height.
+			for (int i = 0; i < 4; i++) {
 				ClickEverythingTest.this.clock.addAndGet(1_000_000_000L);
 				FakeRenderer renderer = new FakeRenderer(960.0F, 540.0F);
 				this.screen.render(renderer, this.mouseX, this.mouseY, 1.0F);
@@ -78,6 +79,15 @@ class ClickEverythingTest {
 		@Override
 		public void escape() {
 			this.screen.keyDown(Key.ESCAPE, false, false, false);
+			this.frames();
+		}
+
+		@Override
+		public void scroll(float x, float y, float amount) {
+			this.mouseX = x;
+			this.mouseY = y;
+			this.frames();
+			this.screen.mouseScroll(x, y, amount);
 			this.frames();
 		}
 

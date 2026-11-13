@@ -1,0 +1,14 @@
+{
+	"required": true,
+	"package": "dev.wisteria.mixin",
+	"compatibilityLevel": "JAVA_25",
+	"client": [
+		"CommandSuggestionsMixin",
+		"ConnectionMixin",
+		"KeyboardHandlerMixin",
+		"LightmapMixin"
+	],
+	"injectors": {
+		"defaultRequire": 1
+	}
+}

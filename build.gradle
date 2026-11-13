@@ -1,19 +1,87 @@
-// Root project: only shared conventions. See core/ and compat/v26_x/.
 plugins {
-	// Loaded once here so every subproject (core included, for its Loom companion) sees the same plugin classes.
-	id 'net.fabricmc.fabric-loom' apply false
+	id 'net.fabricmc.fabric-loom' version "${loom_version}"
 }
 
-subprojects {
-	group = rootProject.group
-	version = rootProject.version
+base {
+	archivesName = 'wisteria'
+}
 
-	repositories {
-		mavenCentral()
+repositories {
+	mavenCentral()
+}
+
+// The readiness gate (tools/gate.sh): a dev-only mod with client game tests, never part of the release jar.
+fabricApi {
+	configureTests {
+		createSourceSet = true
+		modId = 'wisteria-gate'
+		enableGameTests = false
+		enableClientGameTests = true
+		eula = true
+		// The gate launches the game twice over the same directory to prove settings survive a restart;
+		// tools/gate.sh wipes the directory itself before the first launch.
+		clearRunDirectory = false
+	}
+}
+
+loom {
+	mods {
+		"wisteria" {
+			sourceSet sourceSets.main
+		}
 	}
 
-	tasks.withType(JavaCompile).configureEach {
-		it.options.release = 25
-		it.options.encoding = 'UTF-8'
+	// -Pbackend=VULKAN (or OPENGL) forces the graphics backend for a run.
+	runs.configureEach {
+		if (project.hasProperty('backend')) {
+			programArgs '--graphicsBackend', project.property('backend').toString()
+		}
+	}
+}
+
+dependencies {
+	minecraft "com.mojang:minecraft:${project.minecraft_version}"
+	implementation "net.fabricmc:fabric-loader:${project.loader_version}"
+	implementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
+
+	testImplementation platform('org.junit:junit-bom:5.13.4')
+	testImplementation 'org.junit.jupiter:junit-jupiter'
+	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+
+test {
+	useJUnitPlatform()
+}
+
+processResources {
+	def version = project.version
+	inputs.property "version", version
+	filesMatching("fabric.mod.json") {
+		expand "version": version
+	}
+}
+
+processGametestResources {
+	def version = project.version
+	inputs.property "version", version
+	filesMatching("fabric.mod.json") {
+		expand "version": version
+	}
+}
+
+tasks.withType(JavaCompile).configureEach {
+	it.options.release = 25
+	it.options.encoding = 'UTF-8'
+}
+
+java {
+	withSourcesJar()
+	sourceCompatibility = JavaVersion.VERSION_25
+	targetCompatibility = JavaVersion.VERSION_25
+}
+
+jar {
+	from("LICENSE") {
+		rename { "${it}_wisteria" }
 	}
 }

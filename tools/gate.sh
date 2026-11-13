@@ -1,21 +1,18 @@
 #!/usr/bin/env bash
-# Runs the version gate headless: tools/gate.sh <26_1|26_2|26_3> [OPENGL|VULKAN]
-# Needs JDK 25, Xvfb and Mesa. Audio is written to build/gate/<run>.wav through OpenAL Soft's wave backend,
-# so the run works on a machine without a sound card and the result can be measured.
+# Runs the readiness gate headless: tools/gate.sh [OPENGL|VULKAN]
+# Needs JDK 25, Xvfb and Mesa (on Windows, run ./gradlew runClientGameTest directly). Audio is written to
+# build/gate/<run>.wav through OpenAL Soft's wave backend, so the run works without a sound card.
 set -euo pipefail
 cd "$(dirname "$0")/.."
-version="${1:?usage: tools/gate.sh <26_1|26_2|26_3> [OPENGL|VULKAN]}"
-backend="${2:-}"
-run="v${version}${backend:+-$backend}"
+backend="${1:-}"
+run="gate${backend:+-$backend}"
 out="$PWD/build/gate"
 mkdir -p "$out"
 # Start the first launch from an empty game directory: no old worlds, options, frames or client config.
-rm -rf "compat/v${version}/build/run/clientGameTest"
+rm -rf "build/run/clientGameTest"
 printf '[general]\ndrivers=wave\nfrequency=44100\n[wave]\nfile=%s/%s.wav\n' "$out" "$run" > "$out/$run.alsoft.conf"
 export ALSOFT_DRIVERS=wave ALSOFT_CONF="$out/$run.alsoft.conf"
-# 26.3 creates its window through SDL, which finds no GLX visual under Xvfb; EGL works. Older versions ignore this.
-export SDL_VIDEO_FORCE_EGL=1
-args=(":v${version}:runClientGameTest" --console=plain)
+args=(runClientGameTest --console=plain)
 [ -n "$backend" ] && args+=("-Pbackend=$backend")
 status=0
 : > "$out/$run.restart.log"
@@ -30,7 +27,7 @@ if [ $status -eq 0 ]; then
 fi
 mkdir -p "$out/$run"
 rm -f "$out/$run"/*.png
-cp compat/v"${version}"/build/run/clientGameTest/gate/*.png "$out/$run/" 2>/dev/null || true
+cp build/run/clientGameTest/gate/*.png "$out/$run/" 2>/dev/null || true
 cat "$out/$run.log" "$out/$run.restart.log" 2>/dev/null | grep -E "WisteriaGate|Using graphics backend|Gate failed|BUILD" | sed -E 's/^\[[0-9:]+\] \[[^]]+\] //' || true
 # The game silently falls back to the other backend if the requested one cannot start: that is not a pass.
 if [ $status -eq 0 ] && [ -n "$backend" ]; then

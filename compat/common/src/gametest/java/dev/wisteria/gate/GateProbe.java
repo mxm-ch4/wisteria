@@ -1,6 +1,7 @@
 package dev.wisteria.gate;
 
 import dev.wisteria.compat.ClientListener;
+import dev.wisteria.compat.FontFace;
 import dev.wisteria.compat.InputBackend;
 import dev.wisteria.compat.Key;
 import dev.wisteria.compat.PacketAdapter;
@@ -43,6 +44,8 @@ final class GateProbe implements ClientListener, InputBackend.InputListener, Pac
 	volatile String targetInfo = "none";
 	/** GUI-scaled width of the last frame, to convert GUI coordinates to pixels. */
 	volatile float guiWidth = 1.0F;
+	/** Widths of "iiii" and "WWWW" in the regular, semibold and mono faces at 16 px. */
+	volatile float[] fontWidths = new float[6];
 	private final String version;
 
 	GateProbe(String version) {
@@ -72,6 +75,22 @@ final class GateProbe implements ClientListener, InputBackend.InputListener, Pac
 		renderer.gradient(x + 18.0F, y + 46.0F, 150.0F, 10.0F, DEEP, PETAL, DEEP, PETAL);
 		renderer.popScissor();
 		renderer.roundedRect(x + width - 22.0F, y + 8.0F, 14.0F, 14.0F, 7.0F, VIOLET);
+
+		// Design-system primitives: a glow, a gradient panel with an outline, and the three bundled fonts.
+		float px = 8.5F;
+		float py = 84.5F;
+		renderer.shadow(px, py, 184.0F, 58.0F, 10.0F, 10.0F, 0x99B79CFF);
+		renderer.roundedGradient(px, py, 184.0F, 58.0F, 10.0F, 0xFF211B2E, 0xFF2E2740, 0xFF17131F, 0xFF211B2E);
+		renderer.roundedOutline(px, py, 184.0F, 58.0F, 10.0F, 1.0F, 0xFF8B6CFF);
+		renderer.text(FontFace.SEMIBOLD, 13.0F, "Inter SemiBold 13", px + 10.0F, py + 6.0F, TEXT);
+		renderer.text(FontFace.REGULAR, 10.0F, "Inter Regular 10 — Привет", px + 10.0F, py + 24.0F, MUTED);
+		renderer.text(FontFace.MONO, 10.0F, "mono 0123456789", px + 10.0F, py + 38.0F, WISTERIA);
+
+		this.fontWidths = new float[] {
+			renderer.textWidth(FontFace.REGULAR, 16.0F, "iiii"), renderer.textWidth(FontFace.REGULAR, 16.0F, "WWWW"),
+			renderer.textWidth(FontFace.SEMIBOLD, 16.0F, "iiii"), renderer.textWidth(FontFace.SEMIBOLD, 16.0F, "WWWW"),
+			renderer.textWidth(FontFace.MONO, 16.0F, "iiii"), renderer.textWidth(FontFace.MONO, 16.0F, "WWWW")
+		};
 
 		// A scaled copy through the transform stack.
 		String label = "scaled x1.5";

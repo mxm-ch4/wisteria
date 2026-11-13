@@ -168,8 +168,8 @@ public abstract class CommonPlatform implements Platform {
 	/** A GUI element for a plain coloured quad. The pipeline type lives in a different package from 26.3 on. */
 	protected abstract GuiElementRenderState plainQuad(QuadGeometry geometry);
 
-	/** A GUI element for a quarter-disc quad drawn with the client's own corner shader. */
-	protected abstract GuiElementRenderState cornerQuad(QuadGeometry geometry);
+	/** A GUI element for a rounded box drawn with the client's own panel shader (see {@link QuadGeometry}). */
+	protected abstract GuiElementRenderState panelQuad(QuadGeometry geometry);
 
 	/** Key state by the game's native code (GLFW key or SDL scancode, whichever the version uses). */
 	protected abstract boolean isNativeKeyDown(int code);

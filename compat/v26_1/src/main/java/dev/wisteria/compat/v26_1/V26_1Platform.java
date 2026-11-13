@@ -22,13 +22,13 @@ import org.jspecify.annotations.Nullable;
 
 /** Minecraft 26.1.2: OpenGL only, pipelines declare uniforms one by one, no separate Hud or LevelExtractor. */
 public final class V26_1Platform extends CommonPlatform {
-	/** Vanilla vertex shader, the client's fragment shader: anti-aliased quarter-discs for rounded corners. */
-	private static final RenderPipeline CORNER = RenderPipeline.builder(RenderPipelines.MATRICES_PROJECTION_SNIPPET)
-		.withLocation(Identifier.fromNamespaceAndPath("wisteria", "pipeline/corner"))
-		.withVertexShader("core/position_tex_color")
-		.withFragmentShader(Identifier.fromNamespaceAndPath("wisteria", "core/corner"))
+	/** The client's rounded-box shader; shape parameters travel in the ENTITY vertex format (see QuadGeometry). */
+	private static final RenderPipeline PANEL = RenderPipeline.builder(RenderPipelines.MATRICES_PROJECTION_SNIPPET)
+		.withLocation(Identifier.fromNamespaceAndPath("wisteria", "pipeline/panel"))
+		.withVertexShader(Identifier.fromNamespaceAndPath("wisteria", "core/panel"))
+		.withFragmentShader(Identifier.fromNamespaceAndPath("wisteria", "core/panel"))
 		.withColorTargetState(new ColorTargetState(BlendFunction.TRANSLUCENT))
-		.withVertexFormat(DefaultVertexFormat.POSITION_TEX_COLOR, VertexFormat.Mode.QUADS)
+		.withVertexFormat(DefaultVertexFormat.ENTITY, VertexFormat.Mode.QUADS)
 		.withCull(false)
 		.build();
 
@@ -53,8 +53,8 @@ public final class V26_1Platform extends CommonPlatform {
 	}
 
 	@Override
-	protected GuiElementRenderState cornerQuad(QuadGeometry geometry) {
-		return new QuadState(CORNER, geometry);
+	protected GuiElementRenderState panelQuad(QuadGeometry geometry) {
+		return new QuadState(PANEL, geometry);
 	}
 
 	@Override

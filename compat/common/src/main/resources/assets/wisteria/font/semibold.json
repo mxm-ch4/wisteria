@@ -1,0 +1,14 @@
+{
+	"providers": [
+		{
+			"type": "ttf",
+			"file": "wisteria:inter-semibold.ttf",
+			"size": 16.0,
+			"oversample": 4.0,
+			"shift": [
+				0.0,
+				0.0
+			]
+		}
+	]
+}

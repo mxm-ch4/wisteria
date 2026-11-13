@@ -23,14 +23,14 @@ import org.jspecify.annotations.Nullable;
 
 /** Minecraft 26.2: OpenGL or Vulkan, pipelines use bind group layouts, screens live in Minecraft.gui. */
 public final class V26_2Platform extends CommonPlatform {
-	/** Vanilla vertex shader, the client's fragment shader: anti-aliased quarter-discs for rounded corners. */
-	private static final RenderPipeline CORNER = RenderPipeline.builder(RenderPipelines.GLOBALS_SNIPPET)
+	/** The client's rounded-box shader; shape parameters travel in the ENTITY vertex format (see QuadGeometry). */
+	private static final RenderPipeline PANEL = RenderPipeline.builder(RenderPipelines.GLOBALS_SNIPPET)
 		.withBindGroupLayout(BindGroupLayouts.MATRICES_PROJECTION)
-		.withLocation(Identifier.fromNamespaceAndPath("wisteria", "pipeline/corner"))
-		.withVertexShader("core/position_tex_color")
-		.withFragmentShader(Identifier.fromNamespaceAndPath("wisteria", "core/corner"))
+		.withLocation(Identifier.fromNamespaceAndPath("wisteria", "pipeline/panel"))
+		.withVertexShader(Identifier.fromNamespaceAndPath("wisteria", "core/panel"))
+		.withFragmentShader(Identifier.fromNamespaceAndPath("wisteria", "core/panel"))
 		.withColorTargetState(new ColorTargetState(BlendFunction.TRANSLUCENT))
-		.withVertexBinding(0, DefaultVertexFormat.POSITION_TEX_COLOR)
+		.withVertexBinding(0, DefaultVertexFormat.ENTITY)
 		.withPrimitiveTopology(PrimitiveTopology.QUADS)
 		.withCull(false)
 		.build();
@@ -56,8 +56,8 @@ public final class V26_2Platform extends CommonPlatform {
 	}
 
 	@Override
-	protected GuiElementRenderState cornerQuad(QuadGeometry geometry) {
-		return new QuadState(CORNER, geometry);
+	protected GuiElementRenderState panelQuad(QuadGeometry geometry) {
+		return new QuadState(PANEL, geometry);
 	}
 
 	@Override

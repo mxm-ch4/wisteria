@@ -66,6 +66,20 @@ public final class GateTest implements FabricClientGameTest {
 			int sky = world.at(2.0F * scale, 2.0F * scale);
 			check("2D: corner rounded", distance(corner, sky) < 30 && distance(corner, body) > 60);
 			check("2D: accent dot", isViolet(world.at((8.5F + 184.0F - 15.0F) * scale, (8.5F + 15.0F) * scale)));
+			// A font that failed to load falls back to identical placeholder boxes, so every string is the same width.
+			float[] widths = probe.fontWidths;
+			LOG.info("fonts: iiii/WWWW widths regular {}/{}, semibold {}/{}, mono {}/{}", widths[0], widths[1], widths[2], widths[3], widths[4], widths[5]);
+			check("fonts: Inter Regular loaded", widths[0] > 0.0F && widths[0] < widths[1] * 0.6F);
+			check("fonts: Inter SemiBold loaded", widths[2] < widths[3] * 0.6F && widths[3] > widths[1]);
+			check("fonts: JetBrains Mono loaded", widths[4] > 0.0F && Math.abs(widths[4] - widths[5]) < 0.01F && Math.abs(widths[4] - 4.0F * 9.6F) < 0.5F);
+			// The glow is faint by design: compare the sky just right of the panel with the same sky further out.
+			int nearPanel = world.at((8.5F + 184.0F + 2.0F) * scale, (84.5F + 29.0F) * scale);
+			int farFromPanel = world.at((8.5F + 184.0F + 30.0F) * scale, (84.5F + 29.0F) * scale);
+			int tint = redOverGreen(nearPanel) - redOverGreen(farFromPanel);
+			LOG.info("2D: glow shifts red-over-green by {} next to the panel", tint);
+			check("2D: glow outside the panel", tint > 5);
+			check("2D: outline on the panel edge", isViolet(world.at(100.0F * scale, (84.5F + 0.5F) * scale)));
+
 			int boxPixels = world.count(world.width / 2 - 110, world.height / 2 - 90, 220, 180, GateTest::isViolet);
 			LOG.info("3D: {} tinted pixels around the crosshair", boxPixels);
 			check("3D: box visible in a real frame", boxPixels > 800);
@@ -301,6 +315,10 @@ public final class GateTest implements FabricClientGameTest {
 
 	private static int distance(int a, int b) {
 		return Math.abs((a >> 16 & 0xFF) - (b >> 16 & 0xFF)) + Math.abs((a >> 8 & 0xFF) - (b >> 8 & 0xFF)) + Math.abs((a & 0xFF) - (b & 0xFF));
+	}
+
+	private static int redOverGreen(int argb) {
+		return (argb >> 16 & 0xFF) - (argb >> 8 & 0xFF);
 	}
 
 	private static int luminance(int argb) {

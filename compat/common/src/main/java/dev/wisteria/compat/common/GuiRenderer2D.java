@@ -1,5 +1,6 @@
 package dev.wisteria.compat.common;
 
+import dev.wisteria.compat.FontFace;
 import dev.wisteria.compat.Renderer2D;
 import java.util.ArrayDeque;
 import net.minecraft.client.Minecraft;
@@ -62,24 +63,37 @@ final class GuiRenderer2D implements Renderer2D {
 
 	@Override
 	public void roundedRect(float x, float y, float width, float height, float radius, int argb) {
-		float r = Math.min(radius, Math.min(width, height) / 2.0F);
-		if (r <= 0.01F) {
-			this.rect(x, y, width, height, argb);
+		this.roundedGradient(x, y, width, height, radius, argb, argb, argb, argb);
+	}
+
+	@Override
+	public void roundedGradient(float x, float y, float width, float height, float radius, int topLeft, int topRight, int bottomLeft, int bottomRight) {
+		this.panel(x, y, width, height, radius, 0.0F, 0.0F, topLeft, topRight, bottomLeft, bottomRight);
+	}
+
+	@Override
+	public void roundedOutline(float x, float y, float width, float height, float radius, float thickness, int argb) {
+		if (thickness > 0.0F) {
+			this.panel(x, y, width, height, radius, thickness, 0.0F, argb, argb, argb, argb);
+		}
+	}
+
+	@Override
+	public void shadow(float x, float y, float width, float height, float radius, float blur, int argb) {
+		if (blur > 0.0F) {
+			this.panel(x, y, width, height, radius, 0.0F, Math.min(blur, 127.0F), argb, argb, argb, argb);
+		}
+	}
+
+	private void panel(float x, float y, float width, float height, float radius, float stroke, float feather,
+		int topLeft, int topRight, int bottomLeft, int bottomRight) {
+		if (width <= 0.0F || height <= 0.0F) {
 			return;
 		}
 
-		this.rect(x + r, y, width - 2.0F * r, height, argb);
-		this.rect(x, y + r, r, height - 2.0F * r, argb);
-		this.rect(x + width - r, y + r, r, height - 2.0F * r, argb);
-		this.cornerQuad(x + r, y + r, -r, -r, argb);
-		this.cornerQuad(x + width - r, y + r, r, -r, argb);
-		this.cornerQuad(x + r, y + height - r, -r, r, argb);
-		this.cornerQuad(x + width - r, y + height - r, r, r, argb);
-	}
-
-	private void cornerQuad(float centerX, float centerY, float dx, float dy, int argb) {
-		QuadGeometry geometry = QuadGeometry.corner(this.pose(), centerX, centerY, dx, dy, argb, this.scissor());
-		this.graphics.guiRenderState.addGuiElement(this.platform.cornerQuad(geometry));
+		float r = Math.max(0.0F, Math.min(radius, Math.min(width, height) / 2.0F));
+		QuadGeometry geometry = QuadGeometry.panel(this.pose(), x, y, width, height, r, stroke, feather, topLeft, bottomLeft, bottomRight, topRight, this.scissor());
+		this.graphics.guiRenderState.addGuiElement(this.platform.panelQuad(geometry));
 	}
 
 	@Override
@@ -99,6 +113,27 @@ final class GuiRenderer2D implements Renderer2D {
 	@Override
 	public float lineHeight() {
 		return this.font.lineHeight;
+	}
+
+	@Override
+	public void text(FontFace face, float size, String text, float x, float y, int argb) {
+		// The font is rasterised at Fonts.BASE_SIZE (times its oversample); other sizes are a transform away.
+		float scale = size / Fonts.BASE_SIZE;
+		this.graphics.pose().pushMatrix();
+		this.graphics.pose().translate(x, y + Fonts.topOffset(face, size));
+		this.graphics.pose().scale(scale, scale);
+		this.graphics.text(this.font, Fonts.styled(face, text), 0, 0, argb, false);
+		this.graphics.pose().popMatrix();
+	}
+
+	@Override
+	public float textWidth(FontFace face, float size, String text) {
+		return this.font.width(Fonts.styled(face, text)) * size / Fonts.BASE_SIZE;
+	}
+
+	@Override
+	public float lineHeight(FontFace face, float size) {
+		return Fonts.lineHeight(size);
 	}
 
 	@Override

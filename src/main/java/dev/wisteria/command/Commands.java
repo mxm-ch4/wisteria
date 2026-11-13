@@ -566,7 +566,7 @@ final class Commands {
 
 	private static final class HudCommand extends Command {
 		HudCommand() {
-			super("hud", List.of(), "/ list / <element> <anchor> [x y] / reset [element]", "Opens the HUD editor or places elements by name");
+			super("hud", List.of(), "/ list / <element> <anchor> [x y] / <element> scale <size|reset> / reset [element]", "Opens the HUD editor, places and sizes elements by name");
 		}
 
 		@Override
@@ -600,6 +600,24 @@ final class Commands {
 					out.print(element.name() + " back in its default place");
 				}
 
+				return;
+			}
+
+			if (args.size() == 3 && args.get(1).equalsIgnoreCase("scale")) {
+				dev.wisteria.hud.HudElement element = this.element(client, args.get(0));
+				float scale;
+				if (args.get(2).equalsIgnoreCase("reset")) {
+					scale = 1.0F;
+				} else {
+					try {
+						scale = Float.parseFloat(args.get(2).replace(',', '.'));
+					} catch (NumberFormatException e) {
+						throw new CommandException("Scale must be a number from " + dev.wisteria.hud.HudScale.MIN + " to " + dev.wisteria.hud.HudScale.MAX + ", or reset");
+					}
+				}
+
+				element.scaleSetting().set(dev.wisteria.hud.HudScale.clamp(scale));
+				out.print(element.name() + " size " + dev.wisteria.hud.HudScale.label(element.scale()));
 				return;
 			}
 
@@ -654,7 +672,13 @@ final class Commands {
 			}
 
 			if (args.size() == 2) {
-				return java.util.Arrays.stream(dev.wisteria.hud.Anchor.values()).map(dev.wisteria.hud.Anchor::id).toList();
+				List<String> candidates = new ArrayList<>(List.of("scale"));
+				java.util.Arrays.stream(dev.wisteria.hud.Anchor.values()).map(dev.wisteria.hud.Anchor::id).forEach(candidates::add);
+				return candidates;
+			}
+
+			if (args.size() == 3 && args.get(1).equalsIgnoreCase("scale")) {
+				return List.of("reset", "0.5", "1", "1.5", "2", "3");
 			}
 
 			return List.of();

@@ -216,4 +216,62 @@ class HudTest {
 		List<Toasts.Shown> shown = this.client.hud().toasts().shown();
 		return shown.isEmpty() ? null : shown.getFirst().toast();
 	}
+
+	@Test
+	void cornerHandlesAndTheWheelResizeAndTheSizeIsSaved() {
+		this.platform.typeInChat(".toggle fps on");
+		this.platform.typeInChat(".toggle potions on");
+		HudEditorScreen editor = this.openEditor();
+		HudElement fps = this.client.hud().element("fps");
+		Controls.Control box = this.control(editor, "hud:fps");
+
+		// Select it, then pull its bottom-right handle until it is twice as wide.
+		editor.mouseDown(box.centerX(), box.centerY(), MouseButton.LEFT);
+		editor.mouseUp(box.centerX(), box.centerY(), MouseButton.LEFT);
+		this.editorFrame(editor, box.centerX(), box.centerY());
+		float handleX = box.x() + box.width();
+		float handleY = box.y() + box.height();
+		assertTrue(editor.mouseDown(handleX, handleY, MouseButton.LEFT));
+		this.editorFrame(editor, box.x() + box.width() * 2.0F, box.y() + box.height() * 2.0F);
+		editor.mouseUp(box.x() + box.width() * 2.0F, box.y() + box.height() * 2.0F, MouseButton.LEFT);
+		assertEquals(2.0F, fps.scale(), 0.001F);
+		Controls.Control bigger = this.control(editor, "hud:fps");
+		this.editorFrame(editor, 0.0F, 0.0F);
+		assertEquals(box.x(), this.control(editor, "hud:fps").x(), 0.01F, "pinned top left: it grew to the right");
+		assertEquals(box.width() * 2.0F, bigger.width(), 0.5F);
+
+		// The wheel over another element: one notch is 0.05.
+		Controls.Control potions = this.control(editor, "hud:potions");
+		assertTrue(editor.mouseScroll(potions.centerX(), potions.centerY(), 1.0F));
+		assertEquals(1.05F, this.client.hud().element("potions").scale(), 0.001F);
+
+		// Reset size: for the selected element.
+		Controls.Control reset = this.control(editor, "hud-reset-size");
+		assertTrue(reset.enabled());
+		editor.mouseDown(reset.centerX(), reset.centerY(), MouseButton.LEFT);
+		editor.mouseUp(reset.centerX(), reset.centerY(), MouseButton.LEFT);
+		assertEquals(1.0F, this.client.hud().element("potions").scale());
+
+		this.platform.typeInChat(".hud fps scale 2.5");
+		this.platform.typeInChat(".hudeditor hud-scale 1.5");
+		this.platform.stop();
+		Client after = new Client(new FakePlatform(this.game));
+		assertEquals(2.5F, after.hud().element("fps").scale());
+		assertEquals(1.5F, after.hud().globalScale());
+		this.platform.typeInChat(".hud fps scale reset");
+		assertEquals(1.0F, fps.scale());
+	}
+
+	@Test
+	void theHudWideSizeMultipliesEachElement() {
+		this.platform.typeInChat(".toggle keybinds on");
+		this.hudFrame();
+		float width = this.client.hud().lastDrawn().getFirst().rect().width();
+		this.platform.typeInChat(".hudeditor hud-scale 2");
+		this.platform.typeInChat(".keybinds scale 1.5");
+		this.hudFrame();
+		assertEquals(width * 3.0F, this.client.hud().lastDrawn().getFirst().rect().width(), 0.01F);
+		this.platform.typeInChat(".hudeditor hud-scale 5");
+		assertEquals(2.0F, this.client.hud().globalScale(), "kept in range");
+	}
 }

@@ -120,7 +120,7 @@ public final class HudManager {
 				continue;
 			}
 
-			float scale = element.scale();
+			float scale = this.globalScale() * element.scale();
 			HudLayout.Rect rect = HudLayout.place(placement, size[0] * scale, size[1] * scale, renderer.width(), renderer.height());
 			renderer.push();
 			// Fades in sliding a few pixels from the edge it is pinned to.
@@ -140,6 +140,13 @@ public final class HudManager {
 	/** What the last frame drew, and where; for diagnostics and tests. */
 	public List<Drawn> lastDrawn() {
 		return this.lastDrawn;
+	}
+
+	/** The HUD-wide size, the HUD Editor's "HUD Scale" setting; 1 if there is no such module. */
+	public float globalScale() {
+		Module editor = this.client.modules().get("hudeditor");
+		Object value = editor != null && editor.setting("hud-scale") != null ? editor.setting("hud-scale").get() : null;
+		return value instanceof Float f ? f : 1.0F;
 	}
 
 	/** While the editor is open it draws the HUD itself. */

@@ -33,6 +33,12 @@ public final class HudEditorScreen implements ScreenBackend.ClientScreen {
 	private @Nullable HudElement dragging;
 	private float grabX;
 	private float grabY;
+	private @Nullable HudElement resizing;
+	private int resizeCorner;
+	private HudLayout.@Nullable Rect resizeStart;
+	private float resizeStartScale;
+	private HudLayout.@Nullable Rect resetSizeBox;
+	private @Nullable HudElement hovered;
 	private float guideX = Float.NaN;
 	private float guideY = Float.NaN;
 	private float width;
@@ -80,10 +86,18 @@ public final class HudEditorScreen implements ScreenBackend.ClientScreen {
 			this.drag(mouseX, mouseY);
 		}
 
+		if (this.resizing != null) {
+			this.resize(mouseX, mouseY);
+		}
+
 		this.drawn = hud.render(renderer, true);
+		HudManager.Drawn under = this.at(mouseX, mouseY);
+		this.hovered = under != null ? under.element() : null;
 		for (HudManager.Drawn item : this.drawn) {
 			this.outline(renderer, theme, item);
 		}
+
+		this.handles(renderer, theme, mouseX, mouseY);
 
 		if (!Float.isNaN(this.guideX)) {
 			renderer.rect(this.guideX - 0.5F, 0.0F, 1.0F, this.height, Colors.withAlpha(theme.accent(), 0xC0));
@@ -94,7 +108,7 @@ public final class HudEditorScreen implements ScreenBackend.ClientScreen {
 		}
 
 		this.toolbar(renderer, theme);
-		String hint = "Drag to move  ·  Shift: no snapping  ·  Arrows: nudge  ·  Right click: reset  ·  Esc: done";
+		String hint = "Drag to move  ·  Corners or wheel: size  ·  Shift: no snapping  ·  Arrows: nudge  ·  Right click: reset  ·  Esc: done";
 		Type.CAPTION.draw(renderer, hint, (this.width - Type.CAPTION.width(renderer, hint)) / 2.0F, this.height - 14.0F, theme.textMuted());
 		this.controls.end();
 	}
@@ -183,7 +197,11 @@ public final class HudEditorScreen implements ScreenBackend.ClientScreen {
 		boolean anyMoved = this.client.hud().elements().stream().anyMatch(this.client.hud()::isMoved);
 		String label = "Reset layout";
 		float resetWidth = Type.CAPTION.width(renderer, label) + 14.0F;
-		float resetX = (this.width - resetWidth) / 2.0F;
+		HudElement chosen = this.selected;
+		boolean sized = chosen != null && Math.abs(chosen.scale() - 1.0F) > 0.001F;
+		String sizeLabel = chosen != null ? "Reset size · " + HudScale.label(chosen.scale()) : "Reset size";
+		float sizeWidth = Type.CAPTION.width(renderer, sizeLabel) + 14.0F;
+		float resetX = (this.width - resetWidth - CHIP_GAP - sizeWidth) / 2.0F;
 		Controls.State reset = this.controls.register("hud-reset", Kind.BUTTON, resetX, y, resetWidth, CHIP_HEIGHT, anyMoved,
 			() -> this.client.hud().toJson().toString(), anyMoved ? null : "Nothing has been moved");
 		int resetFill = !anyMoved ? Colors.withAlpha(theme.raised(), 0x80) : reset.hovered() ? theme.hover() : theme.raised();
@@ -192,6 +210,17 @@ public final class HudEditorScreen implements ScreenBackend.ClientScreen {
 		Type.CAPTION.draw(renderer, label, resetX + 7.0F, y + (CHIP_HEIGHT - Type.CAPTION.lineHeight(renderer)) / 2.0F,
 			anyMoved ? theme.text() : theme.textDisabled());
 		this.resetBox = new HudLayout.Rect(resetX, y, resetWidth, CHIP_HEIGHT);
+
+		// Reset size: for the selected element, once its size is not 1.
+		float sizeX = resetX + resetWidth + CHIP_GAP;
+		Controls.State resetSize = this.controls.register("hud-reset-size", Kind.BUTTON, sizeX, y, sizeWidth, CHIP_HEIGHT, sized,
+			() -> chosen != null ? Float.toString(chosen.scale()) : "-", sized ? null : "Select an element whose size is not 1");
+		int sizeFill = !sized ? Colors.withAlpha(theme.raised(), 0x80) : resetSize.hovered() ? theme.hover() : theme.raised();
+		renderer.roundedRect(sizeX, y, sizeWidth, CHIP_HEIGHT, CHIP_HEIGHT / 2.0F, sizeFill);
+		renderer.roundedOutline(sizeX, y, sizeWidth, CHIP_HEIGHT, CHIP_HEIGHT / 2.0F, Metrics.Stroke.HAIRLINE, Colors.withAlpha(theme.outline(), 0xA0));
+		Type.CAPTION.draw(renderer, sizeLabel, sizeX + 7.0F, y + (CHIP_HEIGHT - Type.CAPTION.lineHeight(renderer)) / 2.0F,
+			sized ? theme.text() : theme.textDisabled());
+		this.resetSizeBox = new HudLayout.Rect(sizeX, y, sizeWidth, CHIP_HEIGHT);
 	}
 
 	private HudLayout.@Nullable Rect resetBox;
@@ -214,8 +243,7 @@ public final class HudEditorScreen implements ScreenBackend.ClientScreen {
 		float y = mouseY - this.grabY;
 		float w = current.rect().width();
 		float h = current.rect().height();
-		boolean free = this.client.platform().input().isDown(Key.LEFT_SHIFT) || this.client.platform().input().isDown(Key.RIGHT_SHIFT);
-		HudLayout.Snapped snapped = free
+		HudLayout.Snapped snapped = this.free()
 			? new HudLayout.Snapped(Math.max(0.0F, Math.min(x, this.width - w)), Math.max(0.0F, Math.min(y, this.height - h)), Float.NaN, Float.NaN)
 			: HudLayout.snap(x, y, w, h, others, this.width, this.height, true);
 		this.guideX = snapped.guideX();
@@ -245,6 +273,67 @@ public final class HudEditorScreen implements ScreenBackend.ClientScreen {
 		return null;
 	}
 
+	// Handles belong to the selected element, or to the one under the cursor when nothing is selected.
+	private HudManager.@Nullable Drawn handleOwner() {
+		HudManager.Drawn selected = this.find(this.selected);
+		return selected != null ? selected : this.find(this.hovered);
+	}
+
+	private void handles(Renderer2D renderer, Theme theme, float mouseX, float mouseY) {
+		HudManager.Drawn owner = this.resizing != null ? this.find(this.resizing) : this.handleOwner();
+		if (owner == null) {
+			return;
+		}
+
+		HudLayout.Rect rect = owner.rect();
+		int hot = this.resizing != null ? this.resizeCorner : HudScale.handleAt(rect, mouseX, mouseY);
+		for (int corner = 0; corner < 4; corner++) {
+			float cx = HudScale.cornerX(rect, corner);
+			float cy = HudScale.cornerY(rect, corner);
+			float size = corner == hot ? HudScale.HANDLE + 2.0F : HudScale.HANDLE;
+			renderer.roundedRect(cx - size / 2.0F, cy - size / 2.0F, size, size, 1.5F, theme.accent());
+			renderer.roundedRect(cx - size / 2.0F + 1.5F, cy - size / 2.0F + 1.5F, size - 3.0F, size - 3.0F, 1.0F, corner == hot ? theme.accent() : theme.surface());
+		}
+
+		if (this.resizing != null) {
+			String label = HudScale.label(this.resizing.scale());
+			float width = Type.MONO.width(renderer, label) + 8.0F;
+			float x = Math.min(mouseX + 10.0F, this.width - width);
+			float y = Math.max(0.0F, mouseY - 18.0F);
+			renderer.roundedRect(x, y, width, 13.0F, 3.0F, theme.accent());
+			Type.MONO.draw(renderer, label, x + 4.0F, y + 1.0F, theme.onAccent());
+		}
+	}
+
+	private boolean free() {
+		return this.client.platform().input().isDown(Key.LEFT_SHIFT) || this.client.platform().input().isDown(Key.RIGHT_SHIFT);
+	}
+
+	private void resize(float mouseX, float mouseY) {
+		HudElement element = this.resizing;
+		HudLayout.Rect start = this.resizeStart;
+		if (element == null || start == null) {
+			return;
+		}
+
+		float ratio = HudScale.dragRatio(start, this.client.hud().placement(element).anchor(), this.resizeCorner, mouseX, mouseY);
+		element.scaleSetting().set(HudScale.snap(this.resizeStartScale * ratio, this.free()));
+	}
+
+	@Override
+	public boolean mouseScroll(float x, float y, float amount) {
+		HudManager.Drawn item = this.at(x, y);
+		if (item == null) {
+			return false;
+		}
+
+		boolean control = this.client.platform().input().isDown(Key.LEFT_CONTROL) || this.client.platform().input().isDown(Key.RIGHT_CONTROL);
+		HudElement element = item.element();
+		element.scaleSetting().set(HudScale.wheel(element.scale(), amount, this.free(), control));
+		this.selected = element;
+		return true;
+	}
+
 	@Override
 	public boolean mouseDown(float x, float y, ScreenBackend.MouseButton button) {
 		this.controls.press(x, y);
@@ -258,6 +347,24 @@ public final class HudEditorScreen implements ScreenBackend.ClientScreen {
 		if (button == ScreenBackend.MouseButton.LEFT && this.resetBox != null && this.resetBox.contains(x, y)) {
 			this.client.hud().resetAll();
 			return true;
+		}
+
+		if (button == ScreenBackend.MouseButton.LEFT && this.resetSizeBox != null && this.resetSizeBox.contains(x, y) && this.selected != null) {
+			this.selected.scaleSetting().set(1.0F);
+			return true;
+		}
+
+		HudManager.Drawn handled = this.handleOwner();
+		if (button == ScreenBackend.MouseButton.LEFT && handled != null) {
+			int corner = HudScale.handleAt(handled.rect(), x, y);
+			if (corner >= 0) {
+				this.selected = handled.element();
+				this.resizing = handled.element();
+				this.resizeCorner = corner;
+				this.resizeStart = handled.rect();
+				this.resizeStartScale = handled.element().scale();
+				return true;
+			}
 		}
 
 		HudManager.Drawn item = this.at(x, y);
@@ -282,6 +389,7 @@ public final class HudEditorScreen implements ScreenBackend.ClientScreen {
 	public void mouseUp(float x, float y, ScreenBackend.MouseButton button) {
 		this.controls.release();
 		this.dragging = null;
+		this.resizing = null;
 		this.guideX = Float.NaN;
 		this.guideY = Float.NaN;
 	}

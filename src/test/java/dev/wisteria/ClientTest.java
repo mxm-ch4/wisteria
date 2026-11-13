@@ -350,7 +350,7 @@ class ClientTest {
 			  "modules": {
 			    "esp": { "enabled": "yes", "bind": "NO_SUCH_KEY", "settings": { "range": 99999, "fill": "opaque", "removed-setting": 1 } },
 			    "removedmodule": { "enabled": true },
-			    "watermark": { "enabled": true, "bind": "F7", "settings": { "scale": 2.1 } }
+			    "watermark": { "enabled": true, "bind": "F7", "settings": { "scale": 2.123 } }
 			  }
 			}
 			""");
@@ -363,6 +363,6 @@ class ClientTest {
 		assertEquals("40", esp.setting("fill").format());
 		assertTrue(this.module("watermark").isEnabled());
 		assertTrue(this.module("watermark").bind().matches(Key.F7));
-		assertEquals("2", this.module("watermark").setting("scale").format());
+		assertEquals("2.12", this.module("watermark").setting("scale").format(), "snapped to the 0.01 step");
 	}
 }

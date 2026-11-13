@@ -43,6 +43,10 @@ public final class HudGameTest implements FabricClientGameTest {
 				check("hud restart: Coordinates still on", client.modules().get("coordinates").isEnabled());
 				check("hud restart: Coordinates where the editor left it (" + placement + ")",
 					placement.anchor() == Anchor.TOP_RIGHT && Math.abs(placement.dx()) < 0.01F);
+				float coordinates = client.hud().element("coordinates").scale();
+				float potions = client.hud().element("potions").scale();
+				check("hud restart: sizes kept (Coordinates " + coordinates + ", Potions " + potions + ")",
+					Math.abs(coordinates - 1.5F) < 0.001F && Math.abs(potions - 1.05F) < 0.001F);
 			});
 			return;
 		}
@@ -56,6 +60,7 @@ public final class HudGameTest implements FabricClientGameTest {
 		try (TestSingleplayerContext world = GameTestKit.newWorld(context)) {
 			this.elements(context, world, client);
 			this.editor(context, client);
+			this.sizes(context, client);
 			// Leave Coordinates on for the restart check and Watermark as GateTest left it (on, bottom right);
 			// the rest would sit over later tests' frames.
 			for (String id : ELEMENTS) {
@@ -153,6 +158,62 @@ public final class HudGameTest implements FabricClientGameTest {
 		check("hud editor: Coordinates now drawn against the right edge",
 			Math.abs(coordinates.rect().right() - guiWidth) < 0.5F && moved.count(Math.round(coordinates.rect().x() * scale), Math.round(coordinates.rect().y() * scale),
 				Math.round(coordinates.rect().width() * scale), Math.round(coordinates.rect().height() * scale), argb -> GameTestKit.luminance(argb) > 200) > 20);
+	}
+
+	// Size: the command at both ends of the range, then the real mouse on a corner handle and the wheel.
+	private void sizes(ClientGameTestContext context, Client client) {
+		float scale = GameTestKit.guiScale(context);
+		float guiWidth = context.computeOnClient(minecraft -> (float)minecraft.getWindow().getGuiScaledWidth());
+		float guiHeight = context.computeOnClient(minecraft -> (float)minecraft.getWindow().getGuiScaledHeight());
+		for (String size : List.of("0.5", "3")) {
+			chat(context, ".hud coordinates scale " + size);
+			context.waitTicks(5);
+			grabLastFrame(context, client.platform(), "hud-scale-" + size);
+			HudLayout.Rect rect = this.rectOf(context, client, "coordinates");
+			check("hud size: Coordinates at " + size + "x stays on screen and on the right edge (" + rect + ")",
+				rect.x() >= 0.0F && rect.y() >= 0.0F && Math.abs(rect.right() - guiWidth) < 0.5F && rect.bottom() <= guiHeight + 0.01F);
+		}
+
+		chat(context, ".hud coordinates scale reset");
+		chat(context, ".hud");
+		context.waitTicks(5);
+		HudEditorScreen editor = context.computeOnClient(minecraft -> ((HudEditor)client.modules().get("hudeditor")).screen());
+		Controls.Control box = context.computeOnClient(minecraft -> editor.controls().snapshot().stream()
+			.filter(control -> control.id().equals("hud:coordinates")).findFirst().orElseThrow());
+
+		// Select it, then pull its bottom-left handle half again as far from the top-right anchor.
+		GameTestKit.click(context, box.centerX(), box.centerY(), InputConstants.MOUSE_BUTTON_LEFT, scale);
+		context.getInput().setCursorPos(box.x() * scale, (box.y() + box.height()) * scale);
+		context.waitTicks(2);
+		context.getInput().holdMouse(InputConstants.MOUSE_BUTTON_LEFT);
+		context.waitTicks(2);
+		context.getInput().setCursorPos((box.x() - box.width() * 0.25F) * scale, (box.y() + box.height() * 1.25F) * scale);
+		context.waitTicks(2);
+		context.getInput().setCursorPos((box.x() - box.width() * 0.5F) * scale, (box.y() + box.height() * 1.5F) * scale);
+		context.waitTicks(3);
+		grabLastFrame(context, client.platform(), "hud-resize");
+		context.getInput().releaseMouse(InputConstants.MOUSE_BUTTON_LEFT);
+		context.waitTicks(2);
+		float coordinates = context.computeOnClient(minecraft -> client.hud().element("coordinates").scale());
+		check("hud size: dragging a corner handle with the mouse scales Coordinates to 1.5x (" + coordinates + ")", Math.abs(coordinates - 1.5F) < 0.001F);
+		HudLayout.Rect grown = this.rectOf(context, client, "coordinates");
+		check("hud size: it grew from its anchor, still against the right edge", Math.abs(grown.right() - guiWidth) < 0.5F && Math.abs(grown.y() - box.y()) < 0.5F);
+
+		Controls.Control potions = context.computeOnClient(minecraft -> editor.controls().snapshot().stream()
+			.filter(control -> control.id().equals("hud:potions")).findFirst().orElseThrow());
+		context.getInput().setCursorPos(potions.centerX() * scale, potions.centerY() * scale);
+		context.waitTicks(2);
+		context.getInput().scroll(1.0);
+		context.waitTicks(2);
+		float potionsScale = context.computeOnClient(minecraft -> client.hud().element("potions").scale());
+		check("hud size: one wheel notch over Potions is 1.05x (" + potionsScale + ")", Math.abs(potionsScale - 1.05F) < 0.001F);
+		context.getInput().pressKey(InputConstants.KEY_ESCAPE);
+		context.waitTicks(5);
+	}
+
+	private HudLayout.Rect rectOf(ClientGameTestContext context, Client client, String id) {
+		return context.computeOnClient(minecraft -> client.hud().lastDrawn().stream()
+			.filter(item -> item.element().id().equals(id)).findFirst().orElseThrow().rect());
 	}
 
 	/** Share of the pixels in a GUI-space box that differ between two frames. */

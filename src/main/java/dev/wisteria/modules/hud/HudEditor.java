@@ -8,6 +8,8 @@ import org.jspecify.annotations.Nullable;
 /** Opens the HUD editor. Like the ClickGUI, "on" just means the screen is up. */
 public final class HudEditor extends Module {
 	private @Nullable HudEditorScreen screen;
+	private final dev.wisteria.setting.FloatSetting hudScale = this.add(new dev.wisteria.setting.FloatSetting("HUD Scale",
+		"Size of the whole HUD; each element's own Scale multiplies it", 1.0F, dev.wisteria.hud.HudScale.GLOBAL_MIN, dev.wisteria.hud.HudScale.GLOBAL_MAX, 0.05F));
 
 	public HudEditor() {
 		super("HUD Editor", "Drag HUD elements into place; they snap to edges, each other and a grid", Category.HUD);

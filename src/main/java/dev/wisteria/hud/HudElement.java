@@ -12,7 +12,7 @@ import org.jspecify.annotations.Nullable;
  */
 public abstract class HudElement extends Module {
 	private final HudLayout.Placement defaultPlacement;
-	private final FloatSetting scale = this.add(new FloatSetting("Scale", "Size of this element", 1.0F, 0.5F, 3.0F, 0.25F));
+	private final FloatSetting scale = this.add(new FloatSetting("Scale", "Size of this element", 1.0F, HudScale.MIN, HudScale.MAX, 0.01F));
 
 	protected HudElement(String name, String description, Anchor anchor, float dx, float dy) {
 		super(name, description, Category.HUD);
@@ -32,8 +32,14 @@ public abstract class HudElement extends Module {
 		return this.defaultPlacement;
 	}
 
+	/** This element's own size; the HUD-wide size multiplies it. */
 	public final float scale() {
 		return this.scale.get();
+	}
+
+	/** The one place the size lives: the editor's handles and wheel, the slider and the command all set this. */
+	public final FloatSetting scaleSetting() {
+		return this.scale;
 	}
 
 	final float @Nullable [] measureFor(HudContext context) {

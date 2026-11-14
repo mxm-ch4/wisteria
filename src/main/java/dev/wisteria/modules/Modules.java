@@ -32,6 +32,7 @@ public final class Modules {
 			new dev.wisteria.modules.xray.XrayPredicted(),
 			new dev.wisteria.modules.basefinder.BaseFinder(),
 			new dev.wisteria.modules.waypoints.Waypoints(),
+			new dev.wisteria.modules.newchunks.NewChunks(),
 			new ClickGui(),
 			// HUD
 			new Watermark(),

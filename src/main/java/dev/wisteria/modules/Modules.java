@@ -29,6 +29,8 @@ public final class Modules {
 		return List.of(
 			new FullBright(),
 			new EntityEsp(),
+			new dev.wisteria.modules.storage.StorageEsp(),
+			new dev.wisteria.modules.storage.ShulkerPreview(),
 			new dev.wisteria.modules.xray.XrayPredicted(),
 			new dev.wisteria.modules.basefinder.BaseFinder(),
 			new dev.wisteria.modules.waypoints.Waypoints(),

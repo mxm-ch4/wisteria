@@ -121,6 +121,10 @@ public final class GamePlatform implements Platform {
 			}
 		});
 
+		// Shulker Preview's grid in item tooltips.
+		net.fabricmc.fabric.api.client.rendering.v1.ClientTooltipComponentCallback.EVENT.register(data ->
+			data instanceof ShulkerTooltip.Data shulker ? new ShulkerTooltip.Grid(shulker) : null);
+
 		// Batches queued during extraction are drawn at the end of the world's main pass, over terrain and entities.
 		net.fabricmc.fabric.api.client.rendering.v1.level.LevelRenderEvents.END_MAIN.register(context -> {
 			var camera = context.levelState().cameraRenderState;

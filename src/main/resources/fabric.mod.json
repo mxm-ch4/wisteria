@@ -18,6 +18,9 @@
 	"entrypoints": {
 		"client": [
 			"dev.wisteria.WisteriaMod"
+		],
+		"seedcrackerx": [
+			"dev.wisteria.modules.client.SeedcrackerBridge"
 		]
 	},
 	"mixins": [

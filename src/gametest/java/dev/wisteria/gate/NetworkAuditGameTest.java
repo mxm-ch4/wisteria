@@ -164,6 +164,18 @@ public final class NetworkAuditGameTest implements FabricClientGameTest {
 		Map<String, Integer> off = this.window(context);
 		long requestsBefore = context.computeOnClient(minecraft -> client.net().requestsMade());
 		context.runOnClient(minecraft -> PASSIVE.forEach(id -> client.modules().get(id).setEnabled(true)));
+		// SeedcrackerX handing over a seed, as it would after cracking one: it only goes into the profile.
+		// From its own thread, as its cracker does.
+		Thread cracker = new Thread(() -> net.fabricmc.loader.api.FabricLoader.getInstance()
+			.getEntrypoints("seedcrackerx", kaptainwutax.seedcrackerX.api.SeedCrackerAPI.class)
+			.forEach(entrypoint -> entrypoint.pushWorldSeed(20261115L)), "fake SeedcrackerX");
+		cracker.start();
+		try {
+			cracker.join(5_000L);
+		} catch (InterruptedException interrupted) {
+			Thread.currentThread().interrupt();
+		}
+
 		context.waitTicks(20);
 		Map<String, Integer> on = this.window(context);
 		boolean working = context.computeOnClient(minecraft -> ((dev.wisteria.modules.xray.XrayPredicted) client.modules().get("xraypredicted")).ready());

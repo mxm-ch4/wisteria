@@ -55,6 +55,8 @@ dependencies {
 
 test {
 	useJUnitPlatform()
+	// As the official launcher starts the game: the media source calls Windows through Java's foreign function API.
+	jvmArgs '--enable-native-access=ALL-UNNAMED'
 }
 
 // The gate's audit launch runs the client with Wisteria switched off (tools/gate.sh sets WISTERIA_DISABLED).

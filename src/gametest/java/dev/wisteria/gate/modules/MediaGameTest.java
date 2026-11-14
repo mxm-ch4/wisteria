@@ -12,7 +12,7 @@ import dev.wisteria.gate.ModuleGameTest;
 import dev.wisteria.hud.HudManager;
 import dev.wisteria.media.FakeMediaSource;
 import dev.wisteria.media.MediaSource;
-import dev.wisteria.media.SmtcMediaSource;
+import dev.wisteria.media.WinRtMediaSource;
 import dev.wisteria.setting.ActionSetting;
 import java.util.List;
 import net.fabricmc.fabric.api.client.gametest.v1.context.ClientGameTestContext;
@@ -74,10 +74,16 @@ public final class MediaGameTest extends ModuleGameTest {
 		check("media: playing again, it is back", this.drawn(context, client) != null);
 
 		// The real source here: Linux, so it says what it needs instead of starting anything.
-		SmtcMediaSource smtc = new SmtcMediaSource();
+		WinRtMediaSource smtc = new WinRtMediaSource();
 		smtc.start();
-		check("media: the Windows source says it needs Windows (" + smtc.status() + ")", SmtcMediaSource.available() || smtc.status().contains("Windows"));
+		check("media: the Windows source says it needs Windows (" + smtc.status() + ")", WinRtMediaSource.available() || smtc.status().contains("Windows"));
 		smtc.stop();
+		// It calls Windows in-process through the foreign function API; with native access on (as the launcher starts
+		// the game) Java prints no warning about it.
+		check("media: native access is on for the client, so no warning is printed",
+			WinRtMediaSource.class.getModule().isNativeAccessEnabled());
+		boolean children = ProcessHandle.current().children().findAny().isPresent();
+		check("media: the game has no child processes", !children);
 
 		chat(context, ".toggle media off");
 		check("media: switching off stops the source", !fake.started());

@@ -39,7 +39,7 @@ public final class Client {
 	private final dev.wisteria.hud.HudManager hud;
 	private final dev.wisteria.proxy.ProxyManager proxies;
 	private final dev.wisteria.privacy.Privacy privacy;
-	private dev.wisteria.media.MediaSource media = new dev.wisteria.media.SmtcMediaSource();
+	private dev.wisteria.media.MediaSource media = new dev.wisteria.media.WinRtMediaSource();
 
 	public Client(Platform platform) {
 		this(platform, Modules.create());

@@ -37,35 +37,28 @@ class MediaTest {
 	}
 
 	@Test
-	void helperLinesAreRead() {
-		MediaState state = SmtcMediaSource.parse("{\"active\":true,\"app\":\"Spotify.exe\",\"title\":\"Song\",\"artist\":\"Band\",\"position\":61000,"
-			+ "\"duration\":200000,\"age\":250,\"playing\":true}", 5_000L);
+	void smtcValuesBecomeTheWidgetState() {
+		// 3:00 track that started at tick 0, at 1:01.5, reported 250 ms ago, playing (status 4).
+		long now = 1_800_000_000_000L;
+		long reported = (now - 250L) * 10_000L + WinRt.UNIX_EPOCH_FILETIME;
+		MediaState state = WinRtMediaSource.state("Spotify.exe", "Song", "Band", 0L, 1_800_000_000L, 615_000_000L, reported, 4, now);
 		assertEquals("Song", state.title());
 		assertEquals("Band", state.artist());
-		assertEquals(61_000L, state.positionMillis());
+		assertEquals(180_000L, state.durationMillis());
+		assertEquals(61_500L, state.positionMillis());
 		assertEquals(250L, state.ageMillis());
 		assertTrue(state.playing());
-		assertEquals(61_250L, state.positionAt(5_000L));
-		assertNull(SmtcMediaSource.parse("{\"active\":false}", 0L), "nothing playing");
-		assertNull(SmtcMediaSource.parse("garbage", 0L));
-		assertEquals("", SmtcMediaSource.parse("{\"active\":true,\"title\":null}", 0L).title(), "nulls do not break it");
-	}
-
-	@Test
-	void theHelperAsksForNoCoverAndNoNetwork() {
-		String script = SmtcMediaSource.SCRIPT.toLowerCase(java.util.Locale.ROOT);
-		assertFalse(script.contains("thumbnail"));
-		assertFalse(script.contains("http"));
-		assertFalse(script.contains("invoke-webrequest"));
+		assertFalse(WinRtMediaSource.state("a", "Song", "", 0L, 0L, 0L, 0L, 5, now).playing(), "paused");
+		assertNull(WinRtMediaSource.state("a", "", " ", 0L, 0L, 0L, 0L, 4, now), "a session with no track shows nothing");
 	}
 
 	@Test
 	void notWindowsSaysSo() {
-		if (SmtcMediaSource.available()) {
+		if (WinRtMediaSource.available()) {
 			return;
 		}
 
-		SmtcMediaSource source = new SmtcMediaSource();
+		WinRtMediaSource source = new WinRtMediaSource();
 		source.start();
 		assertTrue(source.status().contains("Windows"), source.status());
 		assertTrue(source.current().isEmpty());

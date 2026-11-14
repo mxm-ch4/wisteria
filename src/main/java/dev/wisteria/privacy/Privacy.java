@@ -24,6 +24,7 @@ public final class Privacy {
 
 	private final Client client;
 	private final List<String> words = new CopyOnWriteArrayList<>(DEFAULT_WORDS);
+	private final List<java.util.function.Supplier<List<String>>> secretSources = new java.util.concurrent.CopyOnWriteArrayList<>();
 	private final List<Runnable> changeListeners = new CopyOnWriteArrayList<>();
 	private final AtomicInteger guarded = new AtomicInteger();
 	private volatile Supplier<String> brand = () -> "vanilla";
@@ -91,12 +92,22 @@ public final class Privacy {
 			this.client.secrets().forCore(proxy.userKey()).ifPresent(proxyBits::add);
 		}
 
-		String reason = ChatGuard.check(line, this.client.secrets().values(), proxyBits, this.words);
+		List<String> secrets = new ArrayList<>(this.client.secrets().values());
+		for (java.util.function.Supplier<List<String>> source : this.secretSources) {
+			secrets.addAll(source.get());
+		}
+
+		String reason = ChatGuard.check(line, secrets, proxyBits, this.words);
 		if (reason != null) {
 			this.guarded.incrementAndGet();
 		}
 
 		return reason;
+	}
+
+	/** More values the guard treats as secrets (the saved world seeds). */
+	public void addSecretSource(java.util.function.Supplier<List<String>> source) {
+		this.secretSources.add(source);
 	}
 
 	/** How many lines the guard has held back since the game started. */

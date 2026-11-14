@@ -62,6 +62,12 @@ public final class Client {
 		if (privacySection != null) {
 			this.privacy.settings(privacySection::brand, privacySection::hideChannels, privacySection::guard);
 		}
+
+		dev.wisteria.modules.client.SeedsSection seeds = this.modules.get(dev.wisteria.modules.client.SeedsSection.class);
+		if (seeds != null) {
+			this.privacy.addSecretSource(seeds::seedTexts);
+		}
+
 		dev.wisteria.modules.client.ProxySection proxySection = this.modules.get(dev.wisteria.modules.client.ProxySection.class);
 		if (proxySection != null) {
 			this.proxies.routeFrom(proxySection::route);

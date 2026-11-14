@@ -29,6 +29,7 @@ public final class Modules {
 		return List.of(
 			new FullBright(),
 			new EntityEsp(),
+			new dev.wisteria.modules.xray.XrayPredicted(),
 			new ClickGui(),
 			// HUD
 			new Watermark(),
@@ -50,6 +51,7 @@ public final class Modules {
 			new dev.wisteria.modules.client.NetworkSection(),
 			new dev.wisteria.modules.client.ChatSection(),
 			new dev.wisteria.modules.client.PrivacySection(),
+			new dev.wisteria.modules.client.SeedsSection(),
 			new dev.wisteria.modules.client.InterfaceSection(),
 			new dev.wisteria.modules.client.ToolsSection()
 		);

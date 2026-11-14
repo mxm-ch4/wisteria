@@ -14,6 +14,7 @@
 			"dev.wisteria.gate.CoreGameTest",
 			"dev.wisteria.gate.HudGameTest",
 			"dev.wisteria.gate.modules.EspGameTest",
+			"dev.wisteria.gate.modules.XrayGameTest",
 			"dev.wisteria.gate.ProxyGameTest",
 			"dev.wisteria.gate.MenuGameTest",
 			"dev.wisteria.gate.NetworkAuditGameTest",

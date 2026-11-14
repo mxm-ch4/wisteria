@@ -52,7 +52,13 @@ public final class NetworkAuditGameTest implements FabricClientGameTest {
 				context.waitTicks(60);
 				if (!plain) {
 					this.checksInTheWorld(context);
+				} else {
+					// As long as the passive-module window of the other launch, so both see the same keep-alives.
+					context.waitTicks(PASSIVE_WINDOW_TICKS);
 				}
+
+				// About 20 s connected in both launches: past the server's keep-alive at 15 s, well before the next at 30 s.
+				context.waitTicks(100);
 
 				// The same ordinary chat line in both launches, so the logs compare like for like.
 				int before = AuditLog.chatPackets();
@@ -139,6 +145,65 @@ public final class NetworkAuditGameTest implements FabricClientGameTest {
 		check("audit: no key mappings of ours in the game's controls", !keys);
 		long requests = context.computeOnClient(minecraft -> client.net().requestsMade());
 		check("audit: the client made no request of its own (" + requests + ")", requests == 0L);
+		this.passiveModules(context, client);
+	}
+
+	/** SPEC_PASSIVE: the modules that only look at what the server already sent. */
+	/** Two 100-tick windows and the 20 ticks between them. */
+	private static final int PASSIVE_WINDOW_TICKS = 220;
+	private static final List<String> PASSIVE = List.of("xraypredicted");
+
+	/**
+	 * The same idle player for five seconds with the passive modules off, then five seconds with them on (Xray with a
+	 * seed, so it really predicts): the server must get the same packets, type for type.
+	 */
+	private void passiveModules(ClientGameTestContext context, Client client) {
+		dev.wisteria.modules.client.SeedsSection seeds = client.modules().get(dev.wisteria.modules.client.SeedsSection.class);
+		dev.wisteria.setting.PasswordSetting seed = (dev.wisteria.setting.PasswordSetting) seeds.setting("seed");
+		context.runOnClient(minecraft -> seed.store("20261114"));
+		Map<String, Integer> off = this.window(context);
+		long requestsBefore = context.computeOnClient(minecraft -> client.net().requestsMade());
+		context.runOnClient(minecraft -> PASSIVE.forEach(id -> client.modules().get(id).setEnabled(true)));
+		context.waitTicks(20);
+		Map<String, Integer> on = this.window(context);
+		boolean working = context.computeOnClient(minecraft -> ((dev.wisteria.modules.xray.XrayPredicted) client.modules().get("xraypredicted")).ready());
+		context.runOnClient(minecraft -> {
+			PASSIVE.forEach(id -> client.modules().get(id).setEnabled(false));
+			seed.store("");
+		});
+		long requests = context.computeOnClient(minecraft -> client.net().requestsMade()) - requestsBefore;
+
+		List<String> differences = new ArrayList<>();
+		TreeSet<String> types = new TreeSet<>(off.keySet());
+		types.addAll(on.keySet());
+		for (String type : types) {
+			int without = off.getOrDefault(type, 0);
+			int with = on.getOrDefault(type, 0);
+			// Same kinds both times; counts may differ by the odd tick at either end of the window.
+			if (without == 0 != (with == 0) || Math.abs(with - without) > 2) {
+				differences.add(type + " off ×" + without + ", on ×" + with);
+			}
+		}
+
+		LOG.info("audit: passive modules {}: off {}, on {}", PASSIVE, off, on);
+		check("audit: Xray Predicted was really predicting during the window", working);
+		check("audit: passive modules on send nothing extra (" + differences + ")", differences.isEmpty());
+		check("audit: passive modules made no requests (" + requests + ")", requests == 0L);
+	}
+
+	/** What the server got during 100 ticks of standing still. */
+	private Map<String, Integer> window(ClientGameTestContext context) {
+		Map<String, Integer> before = AuditLog.lines();
+		context.waitTicks(100);
+		Map<String, Integer> after = AuditLog.lines();
+		Map<String, Integer> delta = new java.util.TreeMap<>();
+		after.forEach((line, count) -> {
+			int added = count - before.getOrDefault(line, 0);
+			if (added > 0) {
+				delta.put(line, added);
+			}
+		});
+		return delta;
 	}
 
 	private static List<String> format(Map<String, Integer> lines) {

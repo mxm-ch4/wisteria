@@ -22,6 +22,7 @@
 			"dev.wisteria.gate.modules.NewChunksGameTest",
 			"dev.wisteria.gate.modules.StorageGameTest",
 			"dev.wisteria.gate.modules.DurabilityGameTest",
+			"dev.wisteria.gate.modules.HighwayGameTest",
 			"dev.wisteria.gate.ProxyGameTest",
 			"dev.wisteria.gate.MenuGameTest",
 			"dev.wisteria.gate.PanicGameTest",

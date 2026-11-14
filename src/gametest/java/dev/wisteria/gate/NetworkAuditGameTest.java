@@ -151,7 +151,7 @@ public final class NetworkAuditGameTest implements FabricClientGameTest {
 	/** SPEC_PASSIVE: the modules that only look at what the server already sent. */
 	/** Two 100-tick windows and the 20 ticks between them. */
 	private static final int PASSIVE_WINDOW_TICKS = 340;
-	private static final List<String> PASSIVE = List.of("xraypredicted", "media", "basefinder", "waypoints", "newchunks", "storageesp", "shulkerpreview", "durability");
+	private static final List<String> PASSIVE = List.of("xraypredicted", "media", "basefinder", "waypoints", "newchunks", "storageesp", "shulkerpreview", "durability", "highway");
 
 	/**
 	 * The same idle player for five seconds with the passive modules off, then five seconds with them on (Xray with a

@@ -95,6 +95,7 @@ public final class BaseFinder extends Module {
 			}, this::removeLine));
 		this.add(new ActionSetting("Rescan", "Scan every loaded chunk again", "Rescan", this::rescan));
 		this.add(new ActionSetting("Clear", "Forget everything found on this server", "Clear", this::clear));
+		this.add(new ActionSetting("Mark Waypoints", "Add the listed chunks as waypoints, in the group \"bases\"", "Mark", this::markWaypoints));
 		this.add(new InfoSetting("Status", "What the scan is doing", this::status));
 
 		this.on(Events.Join.class, event -> this.joined());
@@ -226,6 +227,21 @@ public final class BaseFinder extends Module {
 
 	private void rescan() {
 		this.queueLoaded();
+	}
+
+	private void markWaypoints() {
+		dev.wisteria.modules.waypoints.Waypoints waypoints = this.client().modules().get(dev.wisteria.modules.waypoints.Waypoints.class);
+		if (waypoints == null || this.level() == null) {
+			return;
+		}
+
+		int marked = 0;
+		for (BaseLogic.Entry entry : this.found()) {
+			waypoints.add(String.format(Locale.ROOT, "Base %d %d", entry.x(), entry.z()), entry.x(), entry.y(), entry.z(), "bases");
+			marked++;
+		}
+
+		this.info(marked + " chunks marked as waypoints (group \"bases\")");
 	}
 
 	private void clear() {

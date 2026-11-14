@@ -31,6 +31,7 @@ public final class Modules {
 			new EntityEsp(),
 			new dev.wisteria.modules.xray.XrayPredicted(),
 			new dev.wisteria.modules.basefinder.BaseFinder(),
+			new dev.wisteria.modules.waypoints.Waypoints(),
 			new ClickGui(),
 			// HUD
 			new Watermark(),

@@ -122,8 +122,11 @@ public final class GamePlatform implements Platform {
 		});
 
 		// Batches queued during extraction are drawn at the end of the world's main pass, over terrain and entities.
-		net.fabricmc.fabric.api.client.rendering.v1.level.LevelRenderEvents.END_MAIN.register(context ->
-			this.batches.draw(context.levelState().cameraRenderState.pos));
+		net.fabricmc.fabric.api.client.rendering.v1.level.LevelRenderEvents.END_MAIN.register(context -> {
+			var camera = context.levelState().cameraRenderState;
+			this.visuals.captureCamera(camera.pos, camera.projectionMatrix, camera.viewRotationMatrix);
+			this.batches.draw(camera.pos);
+		});
 
 		// Once per frame on the client thread, while the game collects what to draw: gizmos may be added here.
 		this.registerLevelExtraction(context -> {

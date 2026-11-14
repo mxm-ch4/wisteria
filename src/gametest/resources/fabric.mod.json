@@ -18,6 +18,7 @@
 			"dev.wisteria.gate.modules.SeedcrackerGameTest",
 			"dev.wisteria.gate.modules.MediaGameTest",
 			"dev.wisteria.gate.modules.BaseFinderGameTest",
+			"dev.wisteria.gate.modules.WaypointsGameTest",
 			"dev.wisteria.gate.ProxyGameTest",
 			"dev.wisteria.gate.MenuGameTest",
 			"dev.wisteria.gate.PanicGameTest",

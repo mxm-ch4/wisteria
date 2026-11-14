@@ -42,6 +42,7 @@ public final class Modules {
 			new Potions(),
 			new Notifications(),
 			new Keybinds(),
+			new dev.wisteria.modules.hud.MediaWidget(),
 			new dev.wisteria.modules.hud.ProxyHud(),
 			new HudEditor(),
 			// Client: every command's counterpart in the menu

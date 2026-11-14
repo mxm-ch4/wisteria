@@ -39,6 +39,7 @@ public final class Client {
 	private final dev.wisteria.hud.HudManager hud;
 	private final dev.wisteria.proxy.ProxyManager proxies;
 	private final dev.wisteria.privacy.Privacy privacy;
+	private dev.wisteria.media.MediaSource media = new dev.wisteria.media.SmtcMediaSource();
 
 	public Client(Platform platform) {
 		this(platform, Modules.create());
@@ -266,6 +267,20 @@ public final class Client {
 	}
 
 	/** Brand, mod channels and the chat guard. */
+	/** Where the media widget gets what is playing: Windows media controls, or a test's fake. */
+	public dev.wisteria.media.MediaSource media() {
+		return this.media;
+	}
+
+	/** Swaps the media source (tests); the old one is stopped, the widget starts the new one when switched on. */
+	public void useMediaSource(dev.wisteria.media.MediaSource source) {
+		this.media.stop();
+		this.media = source;
+		if (this.modules.isEnabled(dev.wisteria.modules.hud.MediaWidget.class)) {
+			source.start();
+		}
+	}
+
 	public dev.wisteria.privacy.Privacy privacy() {
 		return this.privacy;
 	}

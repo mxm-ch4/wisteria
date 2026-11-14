@@ -65,10 +65,10 @@ class ClientTest {
 	@Test
 	void theFirstModulesAreRegistered() {
 		assertEquals(List.of("fullbright", "esp", "xraypredicted", "clickgui", "watermark", "arraylist", "coordinates", "direction", "fps", "tps",
-			"target", "potions", "notifications", "keybinds", "proxystatus", "hudeditor", "proxy", "profiles", "friends", "network", "chat", "privacy",
+			"target", "potions", "notifications", "keybinds", "media", "proxystatus", "hudeditor", "proxy", "profiles", "friends", "network", "chat", "privacy",
 			"seeds", "interface", "tools"), this.client.modules().all().stream().map(Module::id).toList());
 		assertEquals(3, this.client.modules().in(Category.RENDER).size());
-		assertEquals(12, this.client.modules().in(Category.HUD).size());
+		assertEquals(13, this.client.modules().in(Category.HUD).size());
 		assertTrue(this.client.modules().enabled().isEmpty());
 		assertNotNull(this.client.modules().get("FullBright"));
 		assertNull(this.client.modules().get("killaura"));
@@ -246,7 +246,7 @@ class ClientTest {
 		ChatBackend.Completion modules = this.platform.tab(".toggle ");
 		assertEquals(8, modules.start());
 		assertEquals(List.of("arraylist", "clickgui", "coordinates", "direction", "esp", "fps", "fullbright", "hudeditor", "keybinds",
-			"notifications", "potions", "proxy", "proxystatus", "target", "tps", "watermark", "xraypredicted"), modules.candidates(), "only what switches on");
+			"media", "notifications", "potions", "proxy", "proxystatus", "target", "tps", "watermark", "xraypredicted"), modules.candidates(), "only what switches on");
 		assertEquals(List.of("fullbright"), this.platform.tab(".toggle fu").candidates());
 		assertEquals(List.of("off", "on"), this.platform.tab(".toggle esp ").candidates());
 

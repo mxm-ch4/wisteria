@@ -143,7 +143,7 @@ class HudTest {
 	void everyEditorControlResponds() {
 		this.platform.typeInChat(".toggle watermark on");
 		this.platform.typeInChat(".toggle coordinates on");
-		this.platform.typeInChat(".hud coordinates top 0 40");
+		this.platform.typeInChat(".hud coordinates center");
 		HudEditorScreen editor = this.openEditor();
 		ControlWalker.Result result = new ControlWalker(new ControlWalker.Driver() {
 			private float mouseX;

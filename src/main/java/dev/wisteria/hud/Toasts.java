@@ -28,7 +28,23 @@ public final class Toasts {
 		this.clock = clock;
 	}
 
+	private java.util.function.BooleanSupplier muted = () -> false;
+
+	/** While {@code when} says so, new toasts are dropped (the panic button). */
+	public void muteWhile(java.util.function.BooleanSupplier when) {
+		this.muted = when;
+	}
+
+	/** Takes every toast off the screen at once. */
+	public void clear() {
+		this.toasts.clear();
+	}
+
 	public void push(String title, String text, Kind kind) {
+		if (this.muted.getAsBoolean()) {
+			return;
+		}
+
 		this.toasts.add(new Toast(title, text, kind, this.clock.getAsLong()));
 		while (this.toasts.size() > MAX) {
 			this.toasts.removeFirst();

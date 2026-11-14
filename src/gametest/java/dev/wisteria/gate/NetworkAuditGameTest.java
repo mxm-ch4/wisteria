@@ -150,7 +150,7 @@ public final class NetworkAuditGameTest implements FabricClientGameTest {
 
 	/** SPEC_PASSIVE: the modules that only look at what the server already sent. */
 	/** Two 100-tick windows and the 20 ticks between them. */
-	private static final int PASSIVE_WINDOW_TICKS = 220;
+	private static final int PASSIVE_WINDOW_TICKS = 340;
 	private static final List<String> PASSIVE = List.of("xraypredicted", "media", "basefinder");
 
 	/**
@@ -201,9 +201,45 @@ public final class NetworkAuditGameTest implements FabricClientGameTest {
 		check("audit: Xray Predicted was really predicting during the window", working);
 		check("audit: passive modules on send nothing extra (" + differences + ")", differences.isEmpty());
 		check("audit: passive modules made no requests (" + requests + ")", requests == 0L);
+
+		// The panic button: modules on, then panic; the next 100 ticks must look like the idle window.
+		context.runOnClient(minecraft -> {
+			PASSIVE.forEach(id -> client.modules().get(id).setEnabled(true));
+			client.panic().trigger(false, false);
+		});
+		context.waitTicks(20);
+		Map<String, Integer> panicked = this.window(context);
+		boolean wasOn = context.computeOnClient(minecraft -> client.panic().active());
+		context.runOnClient(minecraft -> {
+			client.panic().restore();
+			PASSIVE.forEach(id -> client.modules().get(id).setEnabled(false));
+		});
+		List<String> panicDifferences = new ArrayList<>();
+		TreeSet<String> panicTypes = new TreeSet<>(off.keySet());
+		panicTypes.addAll(panicked.keySet());
+		for (String type : panicTypes) {
+			int without = off.getOrDefault(type, 0);
+			int with = panicked.getOrDefault(type, 0);
+			if (without == 0 != (with == 0) || Math.abs(with - without) > 2) {
+				panicDifferences.add(type + " idle ×" + without + ", panic ×" + with);
+			}
+		}
+
+		LOG.info("audit: panic window {}", panicked);
+		check("audit: the panic was on during its window", wasOn);
+		check("audit: the panic sends nothing (" + panicDifferences + ")", panicDifferences.isEmpty());
 	}
 
-	/** What the server got during 100 ticks of standing still. */
+	/**
+	 * Replies the client owes the server, not things it decides to send: the server pings every 15 s and the client
+	 * answers; the server sends chunks in batches and the client acknowledges each. Whether one lands in a 5 s window
+	 * depends only on the server. Left out of window comparisons
+	 * (the whole-session audit above still compares them).
+	 */
+	private static final java.util.Set<String> SERVER_DRIVEN = java.util.Set.of("minecraft:keep_alive", "minecraft:pong",
+		"minecraft:chunk_batch_received");
+
+	/** What the server got during 100 ticks of standing still, without the replies to the server's own pings. */
 	private Map<String, Integer> window(ClientGameTestContext context) {
 		Map<String, Integer> before = AuditLog.lines();
 		context.waitTicks(100);
@@ -211,7 +247,7 @@ public final class NetworkAuditGameTest implements FabricClientGameTest {
 		Map<String, Integer> delta = new java.util.TreeMap<>();
 		after.forEach((line, count) -> {
 			int added = count - before.getOrDefault(line, 0);
-			if (added > 0) {
+			if (added > 0 && !SERVER_DRIVEN.contains(line)) {
 				delta.put(line, added);
 			}
 		});

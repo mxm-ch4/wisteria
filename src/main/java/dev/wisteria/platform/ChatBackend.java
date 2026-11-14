@@ -8,6 +8,14 @@ public interface ChatBackend {
 	/** Shows a client-side line in chat, prefixed with the client's name. Nothing is sent to the server. */
 	void print(String message);
 
+	/** While {@code muted} says so, {@link #print} shows and logs nothing (the panic button). */
+	default void muteWhile(java.util.function.BooleanSupplier muted) {
+	}
+
+	/** Takes the client's own lines out of the chat history already shown (the panic button). */
+	default void hideClientLines() {
+	}
+
 	/** Called for every chat message the player is about to send. */
 	void listen(ChatListener listener);
 

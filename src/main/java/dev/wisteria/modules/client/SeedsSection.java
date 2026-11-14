@@ -70,6 +70,14 @@ public final class SeedsSection extends ClientSection {
 			this::acceptOffer));
 	}
 
+	@Override
+	protected void onDataCleared() {
+		this.cachedFor = null;
+		this.cached = new TreeMap<>();
+		this.sources = new TreeMap<>();
+		this.offered.clear();
+	}
+
 	/** Pure: what to do when a mod hands over {@code offer} and {@code saved} (from {@code savedSource}) is on file. */
 	public static Offer decide(@Nullable Long saved, @Nullable String savedSource, String source, long offer) {
 		if (saved == null) {

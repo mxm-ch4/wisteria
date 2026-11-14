@@ -17,6 +17,9 @@ import java.util.List;
 /** A game that is not there: records what the client asks of it and lets tests play the game's part. */
 public final class FakePlatform implements Platform {
 	public final List<String> chatLines = new ArrayList<>();
+	/** How many times the client let go of every held key. */
+	public int releasedAll;
+	private java.util.function.BooleanSupplier chatMuted = () -> false;
 	public final List<WorldBackend.Entity> entities = new ArrayList<>();
 	public final List<WorldBackend.Container> containers = new ArrayList<>();
 	/** The game's screens the client asked for, in order. */
@@ -131,6 +134,11 @@ public final class FakePlatform implements Platform {
 			}
 
 			@Override
+			public void releaseAll() {
+				FakePlatform.this.releasedAll++;
+			}
+
+			@Override
 			public void listen(InputListener listener) {
 				FakePlatform.this.inputListeners.add(listener);
 			}
@@ -198,7 +206,14 @@ public final class FakePlatform implements Platform {
 		return new ChatBackend() {
 			@Override
 			public void print(String message) {
-				FakePlatform.this.chatLines.add(message);
+				if (!FakePlatform.this.chatMuted.getAsBoolean()) {
+					FakePlatform.this.chatLines.add(message);
+				}
+			}
+
+			@Override
+			public void muteWhile(java.util.function.BooleanSupplier muted) {
+				FakePlatform.this.chatMuted = muted;
 			}
 
 			@Override

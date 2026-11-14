@@ -218,6 +218,19 @@ public final class GamePlatform implements Platform {
 		.build();
 
 	@Override
+	public void leaveWorld() {
+		net.minecraft.client.Minecraft minecraft = net.minecraft.client.Minecraft.getInstance();
+		if (minecraft.level != null) {
+			minecraft.disconnectFromWorld(net.minecraft.client.multiplayer.ClientLevel.DEFAULT_QUIT_MESSAGE);
+		}
+	}
+
+	@Override
+	public void quitGame() {
+		net.minecraft.client.Minecraft.getInstance().stop();
+	}
+
+	@Override
 	public void writeNetworkAudit() {
 		try {
 			java.nio.file.Path file = SessionAudit.write(this.gameDirectory().resolve(dev.wisteria.Wisteria.ID));

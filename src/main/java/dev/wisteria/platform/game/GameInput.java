@@ -17,6 +17,11 @@ public final class GameInput implements InputBackend {
 	}
 
 	@Override
+	public void releaseAll() {
+		net.minecraft.client.KeyMapping.releaseAll();
+	}
+
+	@Override
 	public boolean isDown(Key key) {
 		Integer code = KeyTable.toNative(key);
 		return code != null && this.platform.isNativeKeyDown(code);

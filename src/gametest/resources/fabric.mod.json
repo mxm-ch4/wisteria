@@ -20,6 +20,7 @@
 			"dev.wisteria.gate.modules.BaseFinderGameTest",
 			"dev.wisteria.gate.ProxyGameTest",
 			"dev.wisteria.gate.MenuGameTest",
+			"dev.wisteria.gate.PanicGameTest",
 			"dev.wisteria.gate.NetworkAuditGameTest",
 			"dev.wisteria.gate.modules.FullBrightGameTest"
 		]

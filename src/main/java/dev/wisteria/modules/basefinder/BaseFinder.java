@@ -124,6 +124,16 @@ public final class BaseFinder extends Module {
 		this.left();
 	}
 
+	@Override
+	protected void onDataCleared() {
+		// The files are gone; the lists in memory go too, without being written back.
+		this.dirty = false;
+		this.entries.clear();
+		this.spots.clear();
+		this.pending.clear();
+		this.batchDirty = true;
+	}
+
 	// ----- Results, for the menu and tests -----
 
 	/** Everything listed on this server, in the menu's order. */

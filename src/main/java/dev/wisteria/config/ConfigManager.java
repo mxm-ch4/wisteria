@@ -150,6 +150,28 @@ public final class ConfigManager {
 		}
 	}
 
+	/**
+	 * Back to a fresh install after Clear My Data: default profile, every module and setting at its default, no
+	 * proxies, friends, allowed hosts, own guard words or moved HUD elements. Written out as defaults.
+	 */
+	public void resetToDefaults() {
+		this.loading = true;
+		try {
+			this.profile = DEFAULT_PROFILE;
+			this.client.proxies().load(new com.google.gson.JsonArray());
+			this.client.relations().load(List.of(), List.of());
+			this.client.net().load(List.of());
+			this.client.privacy().resetWords();
+			this.client.hud().resetAll();
+			this.applyProfile(new JsonObject());
+		} finally {
+			this.loading = false;
+		}
+
+		this.save();
+		this.profileChanged();
+	}
+
 	/** Something changed; write it out once things settle. */
 	public void markDirty() {
 		if (!this.loading) {

@@ -41,8 +41,28 @@ public final class GameChat implements ChatBackend {
 	private static final net.minecraft.network.chat.FontDescription BOLD =
 		new net.minecraft.network.chat.FontDescription.Resource(net.minecraft.resources.Identifier.fromNamespaceAndPath("wisteria", "chat_bold"));
 
+	private static volatile java.util.function.BooleanSupplier muted = () -> false;
+
+	@Override
+	public void hideClientLines() {
+		net.minecraft.client.gui.components.ChatComponent chat = this.platform.chatComponent();
+		if (chat instanceof dev.wisteria.mixin.ChatComponentAccessor history
+			&& history.wisteria$allMessages().removeIf(message -> message.content().getString().startsWith("Wisteria » "))) {
+			history.wisteria$refreshTrimmedMessages();
+		}
+	}
+
+	@Override
+	public void muteWhile(java.util.function.BooleanSupplier when) {
+		muted = when;
+	}
+
 	@Override
 	public void print(String message) {
+		if (muted.getAsBoolean()) {
+			return;
+		}
+
 		LOG.info("[chat] {}", message);
 		Minecraft minecraft = Minecraft.getInstance();
 		minecraft.execute(() -> {

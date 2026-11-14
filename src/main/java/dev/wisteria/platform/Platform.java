@@ -20,6 +20,14 @@ public interface Platform {
 	default void writeNetworkAudit() {
 	}
 
+	/** Leaves the world or server the game's own way (as the pause menu's Disconnect does). */
+	default void leaveWorld() {
+	}
+
+	/** Closes the game the game's own way. */
+	default void quitGame() {
+	}
+
 	/** The client's own version, e.g. "0.1.0". */
 	default String clientVersion() {
 		return "dev";

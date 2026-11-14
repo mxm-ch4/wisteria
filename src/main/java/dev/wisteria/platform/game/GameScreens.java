@@ -62,6 +62,11 @@ public final class GameScreens implements ScreenBackend {
 	}
 
 	/** The game screen that hosts a client screen and passes it the game's input. */
+	@Override
+	public boolean isClientOpen() {
+		return this.platform.currentScreen() instanceof Host;
+	}
+
 	private static final class Host extends Screen {
 		private final GamePlatform platform;
 		private final ClientScreen screen;

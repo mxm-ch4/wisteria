@@ -103,7 +103,21 @@ public final class HudManager {
 	 * @param preview true in the editor: sample content where there is none, no fading
 	 * @return where each element went
 	 */
+	private java.util.function.BooleanSupplier hidden = () -> false;
+
+	/** While {@code when} says so, nothing is drawn, at once and without fading (the panic button). */
+	public void hideWhile(java.util.function.BooleanSupplier when) {
+		this.hidden = when;
+		this.toasts.muteWhile(when);
+	}
+
 	public List<Drawn> render(Renderer2D renderer, boolean preview) {
+		if (!preview && this.hidden.getAsBoolean()) {
+			this.lastDrawn = List.of();
+			this.visibility.clear();
+			return List.of();
+		}
+
 		List<Drawn> drawn = new ArrayList<>();
 		for (HudElement element : this.elements()) {
 			Animation shown = this.visibility.computeIfAbsent(element, key -> new Animation(key.isEnabled() ? 1.0F : 0.0F, Animation.NORMAL, Easing.OUT_CUBIC));

@@ -188,6 +188,15 @@ public abstract class Module {
 	protected void onEnable() {
 	}
 
+	/** Clear My Data wiped the data folder: forget anything kept in memory from it (caches, lists). */
+	protected void onDataCleared() {
+	}
+
+	/** Called by the client after Clear My Data. */
+	public final void dataCleared() {
+		this.onDataCleared();
+	}
+
 	protected void onDisable() {
 	}
 

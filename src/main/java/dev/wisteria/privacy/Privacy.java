@@ -110,6 +110,13 @@ public final class Privacy {
 		this.secretSources.add(source);
 	}
 
+	/** The guard words back to the defaults. */
+	public void resetWords() {
+		this.words.clear();
+		this.words.addAll(DEFAULT_WORDS);
+		this.changed();
+	}
+
 	/** How many lines the guard has held back since the game started. */
 	public int guardCount() {
 		return this.guarded.get();

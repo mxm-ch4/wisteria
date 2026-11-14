@@ -4,6 +4,10 @@ public interface InputBackend {
 	/** Whether the key is physically held right now. */
 	boolean isDown(Key key);
 
+	/** Lets go of every key the game thinks is held (movement, attack, use), so nothing carries on by itself. */
+	default void releaseAll() {
+	}
+
 	void listen(InputListener listener);
 
 	/** The system clipboard as text; empty if it holds something else. */

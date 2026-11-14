@@ -16,6 +16,11 @@ public interface ScreenBackend {
 	/** True while any screen, the game's or ours, is open. */
 	boolean isAnyOpen();
 
+	/** True while one of the client's own screens (ClickGUI, HUD editor) is open. */
+	default boolean isClientOpen() {
+		return false;
+	}
+
 	/** The game's own screens the main menu leads to. */
 	enum GameScreen {
 		SINGLEPLAYER, MULTIPLAYER, OPTIONS, CREDITS, QUIT

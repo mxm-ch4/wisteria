@@ -85,7 +85,13 @@ public final class ModuleManager {
 			return;
 		}
 
+		boolean panic = this.client.panic().active();
 		for (Module module : this.modules.values()) {
+			// While the panic is on, only the menu opens (to reach Restore); every other bind waits.
+			if (panic && !module.id().equals("clickgui")) {
+				continue;
+			}
+
 			if (module.isToggleable() && module.bind().matches(event.key())) {
 				this.client.setEnabled(module, !module.isEnabled());
 			}

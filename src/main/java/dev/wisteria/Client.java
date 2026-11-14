@@ -39,6 +39,7 @@ public final class Client {
 	private final dev.wisteria.hud.HudManager hud;
 	private final dev.wisteria.proxy.ProxyManager proxies;
 	private final dev.wisteria.privacy.Privacy privacy;
+	private final dev.wisteria.privacy.Panic panic = new dev.wisteria.privacy.Panic(this);
 	private dev.wisteria.media.MediaSource media = new dev.wisteria.media.WinRtMediaSource();
 
 	public Client(Platform platform) {
@@ -75,8 +76,11 @@ public final class Client {
 		}
 
 		// With a proxy on, the client's own requests would leave from the real address: they stay off.
-		this.net.offlineWhen(() -> this.proxies.route() instanceof dev.wisteria.proxy.ProxyManager.Route.Direct ? null
-			: "a proxy is on for this profile");
+		this.net.offlineWhen(() -> this.panic.active() ? "the panic button is on"
+			: this.proxies.route() instanceof dev.wisteria.proxy.ProxyManager.Route.Direct ? null : "a proxy is on for this profile");
+		// The panic button: nothing drawn, toasted or printed until Restore.
+		this.hud.hideWhile(this.panic::active);
+		platform.chat().muteWhile(this.panic::active);
 		dev.wisteria.modules.client.ChatSection chatSection = this.modules.get(dev.wisteria.modules.client.ChatSection.class);
 		if (chatSection != null) {
 			this.commands.enabledWhen(chatSection::commandsEnabled);
@@ -120,6 +124,10 @@ public final class Client {
 		// The game's title screen shows the client's menu while Client -> Interface -> Branded Menu is on.
 		platform.screens().setMainMenu(() -> {
 			dev.wisteria.modules.client.InterfaceSection section = this.modules.get(dev.wisteria.modules.client.InterfaceSection.class);
+			if (this.panic.active()) {
+				return null;
+			}
+
 			return section == null || section.brandedMenu() ? new dev.wisteria.ui.MainMenuScreen(this) : null;
 		});
 		dev.wisteria.modules.client.InterfaceSection interfaceSection = this.modules.get(dev.wisteria.modules.client.InterfaceSection.class);
@@ -195,6 +203,7 @@ public final class Client {
 			}
 		});
 
+		this.bus.subscribe(Events.KeyInput.class, this::onPanicKey);
 		this.platform.chat().listen(this.commands::handleChat);
 		this.platform.chat().completions(this.commands::complete);
 	}
@@ -279,6 +288,53 @@ public final class Client {
 		if (this.modules.isEnabled(dev.wisteria.modules.hud.MediaWidget.class)) {
 			source.start();
 		}
+	}
+
+	/** The panic button. */
+	public dev.wisteria.privacy.Panic panic() {
+		return this.panic;
+	}
+
+	/** The panic key: panic, or Restore if the panic is on. Works in the game and in the client's own screens. */
+	private void onPanicKey(Events.KeyInput event) {
+		dev.wisteria.modules.client.PrivacySection section = this.modules.get(dev.wisteria.modules.client.PrivacySection.class);
+		if (section == null || event.action() != dev.wisteria.platform.InputBackend.Action.PRESS || !section.panicKey().matches(event.key())) {
+			return;
+		}
+
+		if (event.inScreen() && !this.platform.screens().isClientOpen()) {
+			return;
+		}
+
+		if (this.panic.active()) {
+			this.panic.restore();
+		} else {
+			this.panic.trigger(section.panicLeavesWorld(), section.panicQuitsGame());
+		}
+	}
+
+	/**
+	 * Clear My Data: deletes everything inside the client's data folder (secrets, proxies, seeds, BaseFinder lists,
+	 * profiles), keeps the folder and the mod, and puts the client back to its defaults. Only from the menu, after the
+	 * player typed the confirmation.
+	 *
+	 * @return how many files were deleted
+	 */
+	public int clearMyData() {
+		for (Module module : this.modules.all()) {
+			if (module.isToggleable() && module.isEnabled()) {
+				this.setEnabled(module, false);
+			}
+		}
+
+		int deleted = dev.wisteria.privacy.DataWipe.wipe(this.root);
+		this.secrets.reload();
+		this.config.resetToDefaults();
+		for (Module module : this.modules.all()) {
+			module.dataCleared();
+		}
+
+		return deleted;
 	}
 
 	public dev.wisteria.privacy.Privacy privacy() {

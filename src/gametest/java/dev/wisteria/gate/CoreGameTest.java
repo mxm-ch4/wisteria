@@ -218,9 +218,13 @@ public final class CoreGameTest implements FabricClientGameTest {
 		BoxBatch tiny = new BoxBatch(1.5F, true);
 		forGrid(camera, 0.02, (x, y, z, size) -> tiny.add(x, y, z, x + size, y + size, z + size, 0xFFB79CFF, 0x40B79CFF));
 		// The game caps an idle player at 30 fps after a minute without input, and the gate's input does not count:
-		// after a long test the cap would hide what is measured. Off for the measurement.
+		// after a long test the cap would hide what is measured. Off for the measurement, and so is vsync.
 		net.minecraft.client.InactivityFpsLimit idleLimit = context.computeOnClient(minecraft -> minecraft.options.inactivityFpsLimit().get());
 		context.runOnClient(minecraft -> minecraft.options.inactivityFpsLimit().set(net.minecraft.client.InactivityFpsLimit.MINIMIZED));
+		// Vsync rounds every frame up to whole display refreshes (Vulkan presents in FIFO): off, so frame times compare.
+		boolean vsync = context.computeOnClient(minecraft -> minecraft.options.enableVsync().get());
+		context.runOnClient(minecraft -> minecraft.options.enableVsync().set(false));
+		context.waitTicks(5);
 		Stats none = this.measure(context, client, renderer -> {
 		});
 		Stats tinySingle = this.measure(context, client, renderer -> forGrid(camera, 0.02, (x, y, z, size) ->
@@ -230,7 +234,10 @@ public final class CoreGameTest implements FabricClientGameTest {
 		long batchCost = tinyBatch.frameMicros - none.frameMicros;
 		LOG.info("render: no boxes {}; full-size batch {}; tiny one by one {}; tiny batch {}", none, batched, tinySingle, tinyBatch);
 		// What is left for the batch here is the software GPU transforming vertices; on a real GPU that is free.
-		context.runOnClient(minecraft -> minecraft.options.inactivityFpsLimit().set(idleLimit));
+		context.runOnClient(minecraft -> {
+			minecraft.options.inactivityFpsLimit().set(idleLimit);
+			minecraft.options.enableVsync().set(vsync);
+		});
 		check("render: per-box frame cost of a batch is under 60% of single boxes (" + batchCost + " vs " + singleCost + " us)",
 			batchCost * 10 < singleCost * 6);
 	}

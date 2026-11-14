@@ -89,8 +89,8 @@ class ClickGuiTest {
 
 	@Test
 	void showsEveryCategoryThatHasModules() {
-		assertEquals(4, this.screen.panels().size());
-		assertTrue(this.renderer.drew("Render") && this.renderer.drew("Misc") && this.renderer.drew("HUD") && this.renderer.drew("Client"));
+		assertEquals(5, this.screen.panels().size());
+		assertTrue(this.renderer.drew("Render") && this.renderer.drew("World") && this.renderer.drew("Misc") && this.renderer.drew("HUD") && this.renderer.drew("Client"));
 		assertTrue(this.renderer.drew("FullBright") && this.renderer.drew("ESP") && this.renderer.drew("Watermark") && this.renderer.drew("ClickGUI"));
 		assertFalse(this.renderer.drew("Combat"), "empty categories get no panel");
 	}

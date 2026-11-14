@@ -30,6 +30,7 @@ public final class Modules {
 			new FullBright(),
 			new EntityEsp(),
 			new dev.wisteria.modules.xray.XrayPredicted(),
+			new dev.wisteria.modules.basefinder.BaseFinder(),
 			new ClickGui(),
 			// HUD
 			new Watermark(),
